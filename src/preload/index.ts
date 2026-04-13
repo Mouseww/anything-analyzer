@@ -55,6 +55,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   startAnalysis: (sessionId: string, purpose?: string) =>
     ipcRenderer.invoke("ai:analyze", sessionId, purpose),
 
+  // Browser bounds sync (renderer → main, fire-and-forget)
+  syncBrowserBounds: (bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => ipcRenderer.send("browser:syncBounds", bounds),
+
   // Settings
   getLLMConfig: () => ipcRenderer.invoke("settings:getLLM"),
   saveLLMConfig: (config: unknown) =>

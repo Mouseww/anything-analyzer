@@ -60,6 +60,8 @@ function App(): React.ReactElement {
 
   /** Ref to the content area for measuring available height */
   const contentRef = useRef<HTMLDivElement>(null)
+  /** Ref to browser placeholder for reporting exact bounds to main process */
+  const placeholderRef = useRef<HTMLDivElement>(null)
   /** Whether we are currently dragging the resize handle */
   const isDragging = useRef(false)
 
@@ -75,6 +77,28 @@ function App(): React.ReactElement {
       })
     }
   }, [currentSessionId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Report exact browser placeholder bounds to main process via ResizeObserver
+  useEffect(() => {
+    const el = placeholderRef.current
+    if (!el) return
+
+    const reportBounds = () => {
+      const rect = el.getBoundingClientRect()
+      window.electronAPI.syncBrowserBounds({
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      })
+    }
+
+    const observer = new ResizeObserver(reportBounds)
+    observer.observe(el)
+    reportBounds() // initial report
+
+    return () => observer.disconnect()
+  }, [])
 
   // Browser navigation handlers
   const handleNavigate = useCallback(async (url: string) => {
@@ -246,8 +270,9 @@ function App(): React.ReactElement {
 
           {/* Browser view placeholder — native WebContentsView overlays this area */}
           <div
+            ref={placeholderRef}
             style={{
-              flex: `0 0 ${browserRatio * 100}%`,
+              flex: `${browserRatio} 0 0`,
               position: 'relative',
               minHeight: 80
             }}
@@ -289,13 +314,13 @@ function App(): React.ReactElement {
           />
 
           {/* Data panel area with tabs */}
-          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <div className="data-panel" style={{ flex: `${1 - browserRatio} 0 0`, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 120 }}>
             {currentSession ? (
               <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 size="small"
-                style={{ flex: 1, padding: '0 12px' }}
+                style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '0 12px' }}
                 items={[
                   {
                     key: 'requests',
@@ -344,6 +369,34 @@ function App(): React.ReactElement {
 
       {/* Settings modal */}
       <SettingsModal open={settingsOpen} onClose={closeSettings} />
+
+      {/* Make Ant Design Tabs content panels fill available space and scroll */}
+      <style>{`
+        .data-panel {
+          min-width: 0;
+        }
+        .data-panel .ant-tabs {
+          min-width: 0;
+        }
+        .data-panel .ant-tabs-content-holder {
+          flex: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+        .data-panel .ant-tabs-content {
+          flex: 1;
+          overflow: hidden;
+          min-width: 0;
+        }
+        .data-panel .ant-tabs-tabpane-active {
+          height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+          min-width: 0;
+        }
+      `}</style>
     </ConfigProvider>
   )
 }

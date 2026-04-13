@@ -93,6 +93,11 @@ export function registerIpcHandlers(deps: {
     windowManager.setBrowserRatio(ratio);
   });
 
+  // Renderer reports exact browser placeholder bounds (fire-and-forget)
+  ipcMain.on("browser:syncBounds", (_event, bounds: { x: number; y: number; width: number; height: number }) => {
+    windowManager.syncBrowserBounds(bounds);
+  });
+
   ipcMain.handle("browser:setVisible", async (_event, visible: boolean) => {
     windowManager.setTargetViewVisible(visible);
   });

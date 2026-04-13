@@ -248,6 +248,12 @@ export interface ElectronAPI {
   getReports: (sessionId: string) => Promise<AnalysisReport[]>;
 
   startAnalysis: (sessionId: string, purpose?: string) => Promise<AnalysisReport>;
+  syncBrowserBounds: (bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => void;
 
   getLLMConfig: () => Promise<LLMProviderConfig | null>;
   saveLLMConfig: (config: LLMProviderConfig) => Promise<void>;

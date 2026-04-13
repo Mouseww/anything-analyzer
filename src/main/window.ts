@@ -3,7 +3,7 @@ import { join } from "path";
 import { TabManager } from "./tab-manager";
 
 /** Tab bar height in renderer (px) */
-const TAB_BAR_HEIGHT = 32;
+const TAB_BAR_HEIGHT = 33; // 32px height + 1px border-bottom
 
 /**
  * WindowManager — Creates and manages the main BrowserWindow
@@ -143,11 +143,18 @@ export class WindowManager {
   private calculateTargetBounds(): Electron.Rectangle {
     if (!this.mainWindow) return { x: 0, y: 0, width: 0, height: 0 };
 
-    const [width, height] = this.mainWindow.getContentSize();
-    const sidebarWidth = 220;
-    const controlBarHeight = 40; // BrowserPanel (address bar)
-    const topOffset = controlBarHeight + TAB_BAR_HEIGHT;
-    const browserHeight = Math.floor((height - topOffset) * this.browserRatio);
+    const contentBounds = this.mainWindow.getContentBounds();
+    const width = contentBounds.width;
+    const height = contentBounds.height;
+    const sidebarWidth = 221; // 220px sidebar + 1px border-right
+    // Renderer fixed-height elements (must match actual rendered sizes):
+    const browserPanelHeight = 49; // padding 8+8 + Input 32 + borderBottom 1
+    const topOffset = browserPanelHeight + TAB_BAR_HEIGHT; // 49 + 33 = 82
+    const dragHandleHeight = 6;
+    const controlBarHeight = 49; // padding 8+8 + Button 32 + borderBottom 1
+    // Available flex space matches renderer's flex-grow split
+    const availableFlexSpace = height - topOffset - dragHandleHeight - controlBarHeight;
+    const browserHeight = Math.floor(Math.max(0, availableFlexSpace) * this.browserRatio);
 
     return {
       x: sidebarWidth,
@@ -163,7 +170,19 @@ export class WindowManager {
    */
   setBrowserRatio(ratio: number): void {
     this.browserRatio = Math.max(0.15, Math.min(0.85, ratio));
-    this.tabManager?.updateBounds();
+    // Don't call updateBounds here — the renderer will report exact bounds
+    // via syncBrowserBounds after its layout updates.
+  }
+
+  /**
+   * Set exact bounds for the active browser tab view.
+   * Called by the renderer which measures the actual placeholder position.
+   */
+  syncBrowserBounds(bounds: Electron.Rectangle): void {
+    const tab = this.tabManager?.getActiveTab();
+    if (tab) {
+      tab.view.setBounds(bounds);
+    }
   }
 
   /**

@@ -43,7 +43,6 @@ const StreamingDisplay: React.FC<{ content: string }> = ({ content }) => {
       ref={containerRef}
       style={{
         padding: 16,
-        maxHeight: 500,
         overflow: 'auto',
         background: 'rgba(255, 255, 255, 0.02)',
         borderRadius: 8
@@ -224,8 +223,8 @@ const ReportView: React.FC<ReportViewProps> = ({
           padding: 16,
           background: 'rgba(255, 255, 255, 0.02)',
           borderRadius: 8,
-          maxHeight: 500,
-          overflow: 'auto'
+          overflowWrap: 'break-word',
+          wordBreak: 'break-word'
         }}
       >
         <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
@@ -263,6 +262,8 @@ const ReportView: React.FC<ReportViewProps> = ({
         .report-markdown-content table {
           width: 100%;
           border-collapse: collapse;
+          display: block;
+          overflow-x: auto;
         }
         .report-markdown-content th,
         .report-markdown-content td {

@@ -39,6 +39,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
   const handlePurposeChange = (value: string) => {
     if (value === 'custom') {
+      window.electronAPI.setTargetViewVisible(false)
       setCustomModalOpen(true)
     } else {
       setPurposeId(value)
@@ -50,11 +51,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
     if (trimmed) {
       setPurposeId('custom')
       setCustomModalOpen(false)
+      window.electronAPI.setTargetViewVisible(true)
     }
   }
 
   const handleCustomCancel = () => {
     setCustomModalOpen(false)
+    window.electronAPI.setTargetViewVisible(true)
   }
 
   const handleAnalyze = () => {
