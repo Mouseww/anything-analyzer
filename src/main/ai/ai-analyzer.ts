@@ -218,7 +218,7 @@ export class AiAnalyzer {
       } catch (err) {
         if (attempt === 1)
           throw new Error(
-            `AI analysis failed after retry: ${(err as Error).message}`,
+            `AI 分析失败（已重试）: ${(err as Error).message}`,
           );
       }
     }

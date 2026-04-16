@@ -15,6 +15,7 @@ interface ControlBarProps {
   status: SessionStatus | null
   onStart: () => void
   onPause: () => void
+  onResume: () => void
   onStop: () => void
   onAnalyze: (purpose?: string) => void
   hasRequests: boolean
@@ -26,6 +27,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   status,
   onStart,
   onPause,
+  onResume,
   onStop,
   onAnalyze,
   hasRequests,
@@ -113,16 +115,18 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </Button>
 
           <Button
-            icon={<PauseCircleOutlined />}
-            disabled={!isRunning}
-            onClick={onPause}
+            icon={isPaused ? <PlayCircleOutlined /> : <PauseCircleOutlined />}
+            disabled={!(isRunning || isPaused)}
+            onClick={isPaused ? onResume : onPause}
             style={
               isRunning
                 ? { color: '#faad14', borderColor: '#faad14' }
-                : undefined
+                : isPaused
+                  ? { color: '#389e0d', borderColor: '#389e0d' }
+                  : undefined
             }
           >
-            Pause
+            {isPaused ? 'Resume' : 'Pause'}
           </Button>
 
           <Button

@@ -316,6 +316,7 @@ export const IPC_CHANNELS = {
   SESSION_LIST: "session:list",
   SESSION_START: "session:start",
   SESSION_PAUSE: "session:pause",
+  SESSION_RESUME: "session:resume",
   SESSION_STOP: "session:stop",
   SESSION_DELETE: "session:delete",
 
@@ -403,6 +404,7 @@ export interface ElectronAPI {
   listSessions: () => Promise<Session[]>;
   startCapture: (sessionId: string) => Promise<void>;
   pauseCapture: (sessionId: string) => Promise<void>;
+  resumeCapture: (sessionId: string) => Promise<void>;
   stopCapture: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
 

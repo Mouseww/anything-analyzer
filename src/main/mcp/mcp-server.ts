@@ -33,10 +33,25 @@ interface MCPServerDeps {
 }
 
 let httpServer: Server | null = null;
-let mcpServer: McpServer | null = null;
 const transports = new Map<string, StreamableHTTPServerTransport>();
+// Per-session McpServer instances (one per transport/session)
+const mcpServers = new Map<string, McpServer>();
 // Per-session chat history for chat_followup tool
 const chatHistories = new Map<string, ChatMessage[]>();
+let currentDeps: MCPServerDeps | null = null;
+
+/**
+ * Create a new McpServer instance with tools and resources registered.
+ */
+function createMcpServerInstance(deps: MCPServerDeps): McpServer {
+  const server = new McpServer({
+    name: "anything-analyzer",
+    version: "1.0.0",
+  });
+  registerTools(server, deps);
+  registerResources(server, deps);
+  return server;
+}
 
 /**
  * Initialize and start the MCP Server on the given port.
@@ -47,13 +62,7 @@ export async function initMCPServer(
 ): Promise<void> {
   if (httpServer) await stopMCPServer();
 
-  mcpServer = new McpServer({
-    name: "anything-analyzer",
-    version: "1.0.0",
-  });
-
-  registerTools(mcpServer, deps);
-  registerResources(mcpServer, deps);
+  currentDeps = deps;
 
   httpServer = createServer(
     async (req: IncomingMessage, res: ServerResponse) => {
@@ -128,9 +137,19 @@ export async function initMCPServer(
             if (transport.sessionId) {
               transports.delete(transport.sessionId);
               chatHistories.delete(transport.sessionId);
+              const srv = mcpServers.get(transport.sessionId);
+              if (srv) {
+                srv.close().catch(() => {});
+                mcpServers.delete(transport.sessionId);
+              }
             }
           };
-          await mcpServer!.connect(transport);
+          const sessionServer = createMcpServerInstance(currentDeps!);
+          await sessionServer.connect(transport);
+          // Store after connect so sessionId is available
+          if (transport.sessionId) {
+            mcpServers.set(transport.sessionId, sessionServer);
+          }
           await transport.handleRequest(req, res, body);
         } else {
           res.writeHead(400);
@@ -166,10 +185,11 @@ export async function stopMCPServer(): Promise<void> {
   transports.clear();
   chatHistories.clear();
 
-  if (mcpServer) {
-    await mcpServer.close().catch(() => {});
-    mcpServer = null;
+  for (const srv of mcpServers.values()) {
+    await srv.close().catch(() => {});
   }
+  mcpServers.clear();
+  currentDeps = null;
 
   return new Promise((resolve) => {
     if (httpServer) {
@@ -261,6 +281,18 @@ function registerTools(server: McpServer, deps: MCPServerDeps): void {
     },
     async ({ sessionId }) => {
       await sessionManager.pauseCapture(sessionId);
+      return text({ success: true });
+    },
+  );
+
+  server.registerTool(
+    "resume_capture",
+    {
+      description: "Resume capturing for a paused session",
+      inputSchema: z.object({ sessionId: z.string() }),
+    },
+    async ({ sessionId }) => {
+      await sessionManager.resumeCapture(sessionId);
       return text({ success: true });
     },
   );

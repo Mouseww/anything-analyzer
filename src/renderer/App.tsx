@@ -37,6 +37,7 @@ function App(): React.ReactElement {
     selectSession,
     deleteSession,
     startCapture,
+    resumeCapture,
     pauseCapture,
     stopCapture
   } = useSession()
@@ -351,6 +352,7 @@ function App(): React.ReactElement {
             status={currentSession?.status ?? null}
             onStart={startCapture}
             onPause={pauseCapture}
+            onResume={resumeCapture}
             onStop={stopCapture}
             onAnalyze={handleAnalyze}
             hasRequests={requests.length > 0}

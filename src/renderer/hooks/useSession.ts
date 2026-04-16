@@ -11,6 +11,7 @@ export interface UseSessionReturn {
   selectSession: (id: string | null) => void
   deleteSession: (id: string) => Promise<void>
   startCapture: () => Promise<void>
+  resumeCapture: () => Promise<void>
   pauseCapture: () => Promise<void>
   stopCapture: () => Promise<void>
 }
@@ -80,6 +81,17 @@ export function useSession(): UseSessionReturn {
     }
   }, [currentSessionId, loadSessions])
 
+  const resumeCapture = useCallback(async () => {
+    if (!currentSessionId) return
+    try {
+      await window.electronAPI.resumeCapture(currentSessionId)
+      await loadSessions()
+    } catch (err) {
+      console.error('Failed to resume capture:', err)
+      throw err
+    }
+  }, [currentSessionId, loadSessions])
+
   const pauseCapture = useCallback(async () => {
     if (!currentSessionId) return
     try {
@@ -117,6 +129,7 @@ export function useSession(): UseSessionReturn {
     selectSession,
     deleteSession,
     startCapture,
+    resumeCapture,
     pauseCapture,
     stopCapture
   }

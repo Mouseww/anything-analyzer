@@ -199,6 +199,28 @@ export class SessionManager {
   }
 
   /**
+   * Resume capturing after a pause — re-attaches capture pipelines to all tabs.
+   */
+  async resumeCapture(sessionId: string): Promise<void> {
+    if (this.currentSessionId !== sessionId) return;
+    const session = this.sessionsRepo.findById(sessionId);
+    if (!session || session.status !== "paused") return;
+
+    // Detach stale bundles then re-attach fresh ones
+    for (const tabId of Array.from(this.tabCaptures.keys())) {
+      this.detachCaptureFromTab(tabId);
+    }
+
+    if (this.tabManager) {
+      for (const tab of this.tabManager.getAllTabs()) {
+        await this.attachCaptureToTab(tab.id, tab.view.webContents);
+      }
+    }
+
+    this.sessionsRepo.updateStatus(sessionId, "running");
+  }
+
+  /**
    * Stop capturing and finalize the session.
    */
   async stopCapture(sessionId: string): Promise<void> {

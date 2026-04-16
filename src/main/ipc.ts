@@ -92,6 +92,10 @@ export function registerIpcHandlers(deps: {
     await sessionManager.pauseCapture(sessionId);
   });
 
+  ipcMain.handle("session:resume", async (_event, sessionId: string) => {
+    await sessionManager.resumeCapture(sessionId);
+  });
+
   ipcMain.handle("session:stop", async (_event, sessionId: string) => {
     await sessionManager.stopCapture(sessionId);
   });

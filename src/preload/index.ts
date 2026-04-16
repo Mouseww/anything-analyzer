@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("session:start", sessionId),
   pauseCapture: (sessionId: string) =>
     ipcRenderer.invoke("session:pause", sessionId),
+  resumeCapture: (sessionId: string) =>
+    ipcRenderer.invoke("session:resume", sessionId),
   stopCapture: (sessionId: string) =>
     ipcRenderer.invoke("session:stop", sessionId),
   deleteSession: (sessionId: string) =>

@@ -596,7 +596,55 @@ export class LLMRouter {
       return response;
     } catch (err) {
       clearTimeout(timeout);
-      throw err;
+      throw new Error(this.diagnoseNetworkError(err as Error, url));
     }
+  }
+
+  /**
+   * 将底层网络错误转换为用户可理解的诊断信息。
+   */
+  private diagnoseNetworkError(err: Error, url: string): string {
+    const msg = err.message || "";
+    const host = (() => {
+      try { return new URL(url).host; } catch { return url; }
+    })();
+
+    // AbortController timeout
+    if (err.name === "AbortError" || msg.includes("aborted")) {
+      return `连接超时：${host} 在 ${DEFAULT_TIMEOUT / 1000} 秒内未响应。请检查 API 地址是否正确，以及网络是否可达。`;
+    }
+
+    // DNS resolution failure
+    if (msg.includes("ENOTFOUND") || msg.includes("getaddrinfo")) {
+      return `DNS 解析失败：无法解析 ${host}。请检查 API 地址拼写是否正确。`;
+    }
+
+    // Connection refused (local service not running)
+    if (msg.includes("ECONNREFUSED")) {
+      return `连接被拒绝：${host} 未在监听。如果使用本地中转服务，请确认该服务已启动。`;
+    }
+
+    // Connection reset
+    if (msg.includes("ECONNRESET") || msg.includes("socket hang up")) {
+      return `连接被重置：${host} 中断了连接。可能是代理服务器不稳定或 API 服务限流。`;
+    }
+
+    // SSL/TLS errors
+    if (msg.includes("UNABLE_TO_VERIFY") || msg.includes("CERT_") || msg.includes("certificate") || msg.includes("SSL")) {
+      return `SSL 证书错误：无法与 ${host} 建立安全连接。如果使用自签证书的中转服务，需配置 NODE_TLS_REJECT_UNAUTHORIZED=0 环境变量（不推荐用于生产环境）。`;
+    }
+
+    // Network unreachable
+    if (msg.includes("ENETUNREACH") || msg.includes("EHOSTUNREACH")) {
+      return `网络不可达：无法连接到 ${host}。请检查网络连接。`;
+    }
+
+    // Generic "fetch failed" — the most common opaque error
+    if (msg.includes("fetch failed")) {
+      return `网络请求失败：无法连接到 ${host}。常见原因：1) API 地址配置错误 2) 网络无法访问该地址（如需科学上网） 3) 本地中转服务未启动。`;
+    }
+
+    // Fallback: preserve original message
+    return `LLM 请求失败 (${host}): ${msg}`;
   }
 }
