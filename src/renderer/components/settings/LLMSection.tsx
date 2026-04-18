@@ -5,6 +5,7 @@ import type { LLMProviderConfig, LLMProviderType, OpenAIApiType } from '@shared/
 const defaultUrls: Record<LLMProviderType, string> = {
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com/v1',
+  minimax: 'https://api.minimax.io/anthropic/v1',
   custom: '',
 }
 
@@ -47,7 +48,7 @@ export default function LLMSection() {
     const provider = value as LLMProviderType
     setName(provider)
     setBaseUrl(defaultUrls[provider])
-    if (provider === 'anthropic') {
+    if (provider === 'anthropic' || provider === 'minimax') {
       setApiType(undefined)
     } else if (!apiType) {
       setApiType('completions')
@@ -81,6 +82,7 @@ export default function LLMSection() {
           options={[
             { label: 'OpenAI', value: 'openai' },
             { label: 'Anthropic', value: 'anthropic' },
+            { label: 'MiniMax', value: 'minimax' },
             { label: 'Custom (OpenAI Compatible)', value: 'custom' },
           ]}
         />
@@ -123,7 +125,7 @@ export default function LLMSection() {
         <Input
           value={model}
           onChange={e => setModel(e.target.value)}
-          placeholder="gpt-4o / claude-sonnet-4-20250514 / ..."
+          placeholder="gpt-4o / claude-sonnet-4-20250514 / MiniMax-M2.7 / ..."
         />
       </div>
 

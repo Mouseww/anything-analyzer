@@ -70,7 +70,7 @@ export class LLMRouter {
     messages: ChatMessage[],
     onChunk?: (chunk: string) => void,
   ): Promise<LLMResponse> {
-    if (this.config.name === "anthropic") {
+    if (this.config.name === "anthropic" || this.config.name === "minimax") {
       return this.completeAnthropic(messages, onChunk);
     }
     if (this.config.apiType === "responses") {
@@ -90,7 +90,7 @@ export class LLMRouter {
     onChunk?: (chunk: string) => void,
     maxRounds = 10,
   ): Promise<LLMResponse> {
-    if (this.config.name === "anthropic") {
+    if (this.config.name === "anthropic" || this.config.name === "minimax") {
       return this.agenticLoopAnthropic(messages, tools, callTool, onChunk, maxRounds);
     }
     return this.agenticLoopOpenAI(messages, tools, callTool, onChunk, maxRounds);

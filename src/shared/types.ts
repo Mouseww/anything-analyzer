@@ -168,7 +168,7 @@ export interface UpdateStatus {
 
 // ---- LLM Provider Config ----
 
-export type LLMProviderType = "openai" | "anthropic" | "custom";
+export type LLMProviderType = "openai" | "anthropic" | "minimax" | "custom";
 export type OpenAIApiType = "completions" | "responses";
 
 export interface LLMProviderConfig {

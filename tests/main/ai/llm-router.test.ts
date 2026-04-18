@@ -58,6 +58,74 @@ describe("LLMRouter", () => {
   });
 
   describe("routing", () => {
+    it("should route minimax to Anthropic messages endpoint", async () => {
+      const config: LLMProviderConfig = {
+        name: "minimax",
+        baseUrl: "https://api.minimax.io/anthropic/v1",
+        apiKey: "test-minimax-key",
+        model: "MiniMax-M2.7",
+        maxTokens: 4096,
+      };
+      fetchSpy.mockResolvedValueOnce(
+        createJSONResponse({
+          content: [{ type: "text", text: "hello from MiniMax" }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        }),
+      );
+
+      const router = new LLMRouter(config);
+      await router.complete([{ role: "user", content: "test" }]);
+
+      const [url] = fetchSpy.mock.calls[0];
+      expect(url).toBe("https://api.minimax.io/anthropic/v1/messages");
+    });
+
+    it("should use x-api-key header for minimax", async () => {
+      const config: LLMProviderConfig = {
+        name: "minimax",
+        baseUrl: "https://api.minimax.io/anthropic/v1",
+        apiKey: "test-minimax-key",
+        model: "MiniMax-M2.7",
+        maxTokens: 4096,
+      };
+      fetchSpy.mockResolvedValueOnce(
+        createJSONResponse({
+          content: [{ type: "text", text: "hello" }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        }),
+      );
+
+      const router = new LLMRouter(config);
+      await router.complete([{ role: "user", content: "test" }]);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options.headers["x-api-key"]).toBe("test-minimax-key");
+      expect(options.headers).not.toHaveProperty("Authorization");
+    });
+
+    it("should parse MiniMax response content and usage correctly", async () => {
+      const config: LLMProviderConfig = {
+        name: "minimax",
+        baseUrl: "https://api.minimax.io/anthropic/v1",
+        apiKey: "test-minimax-key",
+        model: "MiniMax-M2.7-highspeed",
+        maxTokens: 4096,
+      };
+      fetchSpy.mockResolvedValueOnce(
+        createJSONResponse({
+          content: [{ type: "text", text: "MiniMax response" }],
+          usage: { input_tokens: 20, output_tokens: 10 },
+        }),
+      );
+
+      const router = new LLMRouter(config);
+      const result = await router.complete([{ role: "user", content: "hello" }]);
+
+      expect(result.content).toBe("MiniMax response");
+      expect(result.promptTokens).toBe(20);
+      expect(result.completionTokens).toBe(10);
+    });
+
     it("should route to completions endpoint when apiType is undefined", async () => {
       const config: LLMProviderConfig = { ...baseConfig };
       fetchSpy.mockResolvedValueOnce(
