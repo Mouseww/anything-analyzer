@@ -68,8 +68,21 @@ export async function initMCPServer(
 
   httpServer = createServer(
     async (req: IncomingMessage, res: ServerResponse) => {
-      // CORS
-      res.setHeader("Access-Control-Allow-Origin", "*");
+      // CORS — restrict to localhost origins only to prevent cross-origin attacks
+      const origin = req.headers.origin;
+      const isLocalOrigin =
+        !origin ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+      if (!isLocalOrigin) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return;
+      }
+
+      if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+      }
       res.setHeader(
         "Access-Control-Allow-Methods",
         "GET, POST, DELETE, OPTIONS",
