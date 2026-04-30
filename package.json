@@ -1,6 +1,6 @@
 {
   "name": "anything-analyzer",
-  "version": "3.5.5",
+  "version": "3.5.6",
   "description": "Universal web protocol analyzer with embedded browser and AI-powered analysis",
   "packageManager": "pnpm@10.24.0",
   "main": "./out/main/index.js",

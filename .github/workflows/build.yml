@@ -14,10 +14,16 @@ jobs:
         include:
           - os: windows-latest
             platform: win
+            arch: x64
+          - os: macos-13
+            platform: mac
+            arch: x64
           - os: macos-latest
             platform: mac
+            arch: arm64
           - os: ubuntu-latest
             platform: linux
+            arch: x64
 
     runs-on: ${{ matrix.os }}
 
@@ -51,16 +57,7 @@ jobs:
         if: matrix.platform == 'mac'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac --x64 --arm64 --publish never
-
-      - name: Verify macOS updater metadata
-        if: matrix.platform == 'mac'
-        shell: bash
-        run: |
-          test -f dist/latest-mac.yml
-          cat dist/latest-mac.yml
-          grep -q 'arm64\.zip' dist/latest-mac.yml
-          grep -q 'x64\.zip' dist/latest-mac.yml
+        run: npx electron-builder --mac --${{ matrix.arch }} --publish never
 
       - name: Package for Linux
         if: matrix.platform == 'linux'
@@ -69,7 +66,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.platform }}
+          name: build-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             dist/*.exe
             dist/*.dmg

@@ -1,14 +1,14 @@
-# Anything Analyzer v3.5.5
+# Anything Analyzer v3.5.6
 
 ## 修复
 
-- **AI 分析追问内容不可见** — 修复追问回答完成后内容无法自动滚动到可见区域的问题，新增对 `chatHistory` 变化的监听并使用 `requestAnimationFrame` 确保 DOM 更新后再执行滚动
+- **macOS x64 版本原生模块架构错误** — 修复 CI 在 Apple Silicon runner 上交叉编译 x64 时 `better-sqlite3` 等原生模块仍为 arm64 的问题，将 macOS x64 构建改为在 Intel runner (`macos-13`) 上执行
 
 ## 下载
 
 | 平台 | 文件 |
 |------|------|
-| Windows | Anything-Analyzer-Setup-3.5.5.exe |
-| macOS (Apple Silicon) | Anything-Analyzer-3.5.5-arm64.dmg |
-| macOS (Intel) | Anything-Analyzer-3.5.5-x64.dmg |
-| Linux | Anything-Analyzer-3.5.5.AppImage |
+| Windows | Anything-Analyzer-Setup-3.5.6.exe |
+| macOS (Apple Silicon) | Anything-Analyzer-3.5.6-arm64.dmg |
+| macOS (Intel) | Anything-Analyzer-3.5.6-x64.dmg |
+| Linux | Anything-Analyzer-3.5.6.AppImage |
