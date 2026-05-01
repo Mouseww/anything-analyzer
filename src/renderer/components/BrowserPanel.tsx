@@ -6,6 +6,7 @@ import styles from './BrowserPanel.module.css'
 
 interface BrowserPanelProps {
   currentUrl?: string
+  isLoading?: boolean
   onNavigate: (url: string) => void
   onBack: () => void
   onForward: () => void
@@ -17,6 +18,7 @@ interface BrowserPanelProps {
 
 const BrowserPanel: React.FC<BrowserPanelProps> = ({
   currentUrl = '',
+  isLoading = false,
   onNavigate,
   onBack,
   onForward,
@@ -79,6 +81,8 @@ const BrowserPanel: React.FC<BrowserPanelProps> = ({
       {/* Capture controls slot */}
       {captureSlot && <div className={styles.captureControls}>{captureSlot}</div>}
 
+      {/* Loading progress bar */}
+      {isLoading && <div className={styles.loadingBar} />}
     </div>
   )
 }

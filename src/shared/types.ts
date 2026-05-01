@@ -178,6 +178,7 @@ export interface BrowserTab {
   url: string;
   title: string;
   isActive: boolean;
+  isLoading?: boolean;
 }
 
 // ---- Auto Update ----
@@ -611,7 +612,7 @@ export interface ElectronAPI {
     callback: (data: { tabId: string; url: string; title: string }) => void,
   ) => void;
   onTabUpdated: (
-    callback: (data: { tabId: string; url?: string; title?: string }) => void,
+    callback: (data: { tabId: string; url?: string; title?: string; isLoading?: boolean }) => void,
   ) => void;
 
   onRequestCaptured: (callback: (data: CapturedRequest) => void) => void;

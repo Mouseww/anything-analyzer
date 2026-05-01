@@ -9,6 +9,7 @@ interface TabInfo {
   view: WebContentsView;
   url: string;
   title: string;
+  isLoading: boolean;
 }
 
 /** Snapshot of a session's tab group state (kept alive while hidden). */
@@ -181,7 +182,10 @@ export class TabManager extends EventEmitter {
       },
     });
 
-    const tab: TabInfo = { id, view, url: url || "", title: "New Tab" };
+    // Set dark background to avoid white flash while loading
+    view.setBackgroundColor("#1a1a2e");
+
+    const tab: TabInfo = { id, view, url: url || "", title: "New Tab", isLoading: false };
     this.tabs.set(id, tab);
     this.setupTabListeners(tab);
     this.activateTab(id);
@@ -377,6 +381,59 @@ export class TabManager extends EventEmitter {
     wc.on("will-prevent-unload", (event) => {
       // Always prevent the close — do not show the "Leave site?" dialog
       event.preventDefault();
+    });
+
+    // Track loading state
+    wc.on("did-start-loading", () => {
+      tab.isLoading = true;
+      this.emit("tab-updated", {
+        tabId: tab.id,
+        url: tab.url,
+        title: tab.title,
+        isLoading: true,
+      });
+    });
+    wc.on("did-stop-loading", () => {
+      tab.isLoading = false;
+      this.emit("tab-updated", {
+        tabId: tab.id,
+        url: tab.url,
+        title: tab.title,
+        isLoading: false,
+      });
+    });
+
+    // Handle page load failures — show inline error instead of white screen
+    wc.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      if (!isMainFrame) return; // Ignore sub-frame failures
+      if (errorCode === -3) return; // ERR_ABORTED — user navigated away, not a real error
+
+      // Sanitize values to prevent XSS in the error page
+      const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const safeDesc = esc(errorDescription || "");
+      const safeUrl = esc(validatedURL || "");
+      // Encode the original URL for the retry button (safe inside a JS string literal)
+      const retryUrl = JSON.stringify(validatedURL || "");
+
+      const errorPage = `data:text/html;charset=utf-8,${encodeURIComponent(`
+        <!DOCTYPE html><html><head><style>
+          body { background: #1a1a2e; color: #a0a0b8; font-family: -apple-system, system-ui, sans-serif;
+            display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+          .box { text-align: center; max-width: 420px; }
+          h2 { color: #e0e0f0; margin-bottom: 8px; }
+          code { background: #2a2a4a; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+          .url { word-break: break-all; color: #7a7a9a; font-size: 13px; margin-top: 12px; }
+          button { margin-top: 16px; background: #3a3a6a; border: none; color: #e0e0f0; padding: 8px 20px;
+            border-radius: 6px; cursor: pointer; font-size: 13px; }
+          button:hover { background: #4a4a8a; }
+        </style></head><body><div class="box">
+          <h2>\u65E0\u6CD5\u52A0\u8F7D\u6B64\u9875\u9762</h2>
+          <p><code>${errorCode}</code> ${safeDesc}</p>
+          <p class="url">${safeUrl}</p>
+          <button onclick="location.href=${retryUrl.replace(/"/g, '&quot;')}">\u91CD\u8BD5</button>
+        </div></body></html>
+      `)}`;
+      wc.loadURL(errorPage).catch(() => {});
     });
 
     // Override window.close() in page context to make it a no-op

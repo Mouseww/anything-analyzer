@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { IconPlus, IconClose } from '../ui/Icons'
+import { IconPlus, IconClose, IconLoading } from '../ui/Icons'
 import type { BrowserTab } from '@shared/types'
 import styles from './TabBar.module.css'
 
@@ -40,6 +40,7 @@ const TabBar: React.FC<TabBarProps> = ({ tabs, activeTabId, onActivate, onClose,
               onMouseLeave={() => setHoveredTabId(null)}
             >
               <span className={styles.tabLabel} title={tab.url || label}>
+                {tab.isLoading && <IconLoading size={10} />}
                 {label}
               </span>
               {(isHovered || isActive) && (

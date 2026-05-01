@@ -109,6 +109,10 @@ export class MitmProxyServer extends EventEmitter {
       this.handleConnect(req, clientSocket, head);
     });
 
+    this.server.on("upgrade", (req, socket, head) => {
+      this.handleHttpWebSocketUpgrade(req, socket as net.Socket, head);
+    });
+
     this.server.on("connection", (socket) => {
       this.connections.add(socket);
       socket.on("close", () => this.connections.delete(socket));
@@ -281,6 +285,104 @@ export class MitmProxyServer extends EventEmitter {
 
   // ---- HTTP (non-CONNECT) proxy ----
 
+  /**
+   * Handle plain HTTP WebSocket upgrade (ws://) from the main server.
+   */
+  private handleHttpWebSocketUpgrade(
+    clientReq: http.IncomingMessage,
+    clientSocket: net.Socket,
+    head: Buffer,
+  ): void {
+    const startTime = Date.now();
+    const requestId = `proxy-${uuidv4()}`;
+    const targetUrl = clientReq.url || "/";
+    const parsed = url.parse(targetUrl);
+    const hostname = parsed.hostname || "localhost";
+    const port = parseInt(parsed.port || "80", 10);
+    const fullUrl = targetUrl.startsWith("http") ? targetUrl : `ws://${hostname}:${port}${parsed.path || "/"}`;
+
+    const connectToServer = (serverSocket: net.Socket): void => {
+      const headers = { ...clientReq.headers, host: hostname };
+      let rawReq = `${clientReq.method} ${parsed.path || "/"} HTTP/1.1\r\n`;
+      for (const [key, val] of Object.entries(headers)) {
+        if (val === undefined) continue;
+        const values = Array.isArray(val) ? val : [val];
+        for (const v of values) {
+          rawReq += `${key}: ${v}\r\n`;
+        }
+      }
+      rawReq += "\r\n";
+
+      serverSocket.write(rawReq);
+      if (head.length > 0) serverSocket.write(head);
+
+      let responseBuf = Buffer.alloc(0);
+      const onData = (chunk: Buffer): void => {
+        responseBuf = Buffer.concat([responseBuf, chunk]);
+        const headerEnd = responseBuf.indexOf("\r\n\r\n");
+        if (headerEnd === -1) return;
+
+        serverSocket.removeListener("data", onData);
+
+        const responseHeader = responseBuf.subarray(0, headerEnd + 4);
+        const trailing = responseBuf.subarray(headerEnd + 4);
+
+        const firstLine = responseHeader.toString("utf-8").split("\r\n")[0];
+        const statusCode = parseInt(firstLine.split(" ")[1], 10) || 101;
+
+        clientSocket.write(responseHeader);
+        if (trailing.length > 0) clientSocket.write(trailing);
+
+        serverSocket.pipe(clientSocket);
+        clientSocket.pipe(serverSocket);
+
+        serverSocket.on("error", () => clientSocket.destroy());
+        clientSocket.on("error", () => serverSocket.destroy());
+        serverSocket.on("close", () => clientSocket.destroy());
+        clientSocket.on("close", () => serverSocket.destroy());
+
+        this.emit("response-captured", {
+          requestId,
+          method: clientReq.method || "GET",
+          url: fullUrl,
+          requestHeaders: JSON.stringify(clientReq.headers || {}),
+          requestBody: null,
+          statusCode,
+          responseHeaders: JSON.stringify(this.parseRawHeaders(responseHeader.toString("utf-8"))),
+          responseBody: null,
+          contentType: null,
+          initiator: null,
+          durationMs: Date.now() - startTime,
+          isOptions: false,
+          isStatic: false,
+          isStreaming: false,
+          isWebSocket: true,
+          truncated: false,
+          timestamp: startTime,
+        });
+      };
+
+      serverSocket.on("data", onData);
+    };
+
+    if (this.upstreamProxy) {
+      this.connectToTarget(hostname, port)
+        .then(connectToServer)
+        .catch((err) => {
+          console.warn("[MitmProxy] WS upstream proxy error:", err.message);
+          clientSocket.destroy();
+        });
+    } else {
+      const serverSocket = net.connect(port, hostname, () => {
+        connectToServer(serverSocket);
+      });
+      serverSocket.on("error", (err) => {
+        console.warn(`[MitmProxy] WS connect error for ${hostname}:`, err.message);
+        clientSocket.destroy();
+      });
+    }
+  }
+
   private handleHttpRequest(
     clientReq: http.IncomingMessage,
     clientRes: http.ServerResponse,
@@ -437,13 +539,6 @@ export class MitmProxyServer extends EventEmitter {
       return;
     }
 
-    // Check if this is a WebSocket upgrade — just tunnel through
-    const upgradeHeader = req.headers["upgrade"];
-    if (upgradeHeader && upgradeHeader.toLowerCase() === "websocket") {
-      this.tunnelDirect(hostname, port, clientSocket, head);
-      return;
-    }
-
     // Acknowledge CONNECT
     clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
 
@@ -464,6 +559,11 @@ export class MitmProxyServer extends EventEmitter {
         decryptedReq,
         decryptedRes,
       );
+    });
+
+    // Handle WebSocket upgrade requests inside the TLS tunnel
+    miniServer.on("upgrade", (upgradeReq, upgradeSocket, upgradeHead) => {
+      this.handleWebSocketUpgrade(hostname, port, upgradeReq, upgradeSocket as net.Socket, upgradeHead);
     });
 
     // Pipe the TLS socket into the mini server
@@ -517,6 +617,144 @@ export class MitmProxyServer extends EventEmitter {
         );
       }
     });
+  }
+
+  /**
+   * Handle a WebSocket upgrade request received inside a decrypted TLS tunnel.
+   * Forwards the upgrade to the real server and pipes bidirectional frames.
+   */
+  private handleWebSocketUpgrade(
+    hostname: string,
+    port: number,
+    clientReq: http.IncomingMessage,
+    clientSocket: net.Socket,
+    head: Buffer,
+  ): void {
+    const startTime = Date.now();
+    const requestId = `proxy-${uuidv4()}`;
+    const fullUrl = `wss://${hostname}${port !== 443 ? ":" + port : ""}${clientReq.url || "/"}`;
+
+    const connectAndUpgrade = (targetSocket: net.Socket): void => {
+      // Perform TLS handshake with the real server
+      const tlsConnection = tls.connect(
+        {
+          host: hostname,
+          port,
+          socket: targetSocket,
+          rejectUnauthorized: false,
+          servername: hostname,
+        },
+        () => {
+          // Build the upgrade request to send to the real server
+          const headers = { ...clientReq.headers, host: hostname };
+          let rawReq = `${clientReq.method} ${clientReq.url} HTTP/1.1\r\n`;
+          for (const [key, val] of Object.entries(headers)) {
+            if (val === undefined) continue;
+            const values = Array.isArray(val) ? val : [val];
+            for (const v of values) {
+              rawReq += `${key}: ${v}\r\n`;
+            }
+          }
+          rawReq += "\r\n";
+
+          tlsConnection.write(rawReq);
+          if (head.length > 0) tlsConnection.write(head);
+
+          // Wait for the server's upgrade response
+          let responseBuf = Buffer.alloc(0);
+          const onData = (chunk: Buffer): void => {
+            responseBuf = Buffer.concat([responseBuf, chunk]);
+            const headerEnd = responseBuf.indexOf("\r\n\r\n");
+            if (headerEnd === -1) return;
+
+            tlsConnection.removeListener("data", onData);
+
+            const responseHeader = responseBuf.subarray(0, headerEnd + 4);
+            const trailing = responseBuf.subarray(headerEnd + 4);
+
+            // Parse status code from first line
+            const firstLine = responseHeader.toString("utf-8").split("\r\n")[0];
+            const statusCode = parseInt(firstLine.split(" ")[1], 10) || 101;
+
+            // Forward the server response header to the client
+            clientSocket.write(responseHeader);
+            if (trailing.length > 0) clientSocket.write(trailing);
+
+            // Pipe bidirectional WebSocket frames
+            tlsConnection.pipe(clientSocket);
+            clientSocket.pipe(tlsConnection);
+
+            tlsConnection.on("error", () => clientSocket.destroy());
+            clientSocket.on("error", () => tlsConnection.destroy());
+            tlsConnection.on("close", () => clientSocket.destroy());
+            clientSocket.on("close", () => tlsConnection.destroy());
+
+            // Emit capture event for the WebSocket upgrade request
+            this.emit("response-captured", {
+              requestId,
+              method: clientReq.method || "GET",
+              url: fullUrl,
+              requestHeaders: JSON.stringify(clientReq.headers || {}),
+              requestBody: null,
+              statusCode,
+              responseHeaders: JSON.stringify(this.parseRawHeaders(responseHeader.toString("utf-8"))),
+              responseBody: null,
+              contentType: null,
+              initiator: null,
+              durationMs: Date.now() - startTime,
+              isOptions: false,
+              isStatic: false,
+              isStreaming: false,
+              isWebSocket: true,
+              truncated: false,
+              timestamp: startTime,
+            });
+          };
+
+          tlsConnection.on("data", onData);
+        },
+      );
+
+      tlsConnection.on("error", (err) => {
+        console.warn(`[MitmProxy] WebSocket upstream TLS error for ${hostname}:`, err.message);
+        clientSocket.destroy();
+      });
+    };
+
+    if (this.upstreamProxy) {
+      this.connectToTarget(hostname, port)
+        .then(connectAndUpgrade)
+        .catch((err) => {
+          console.warn("[MitmProxy] WebSocket upstream proxy error:", err.message);
+          clientSocket.destroy();
+        });
+    } else {
+      const targetSocket = net.connect(port, hostname, () => {
+        connectAndUpgrade(targetSocket);
+      });
+      targetSocket.on("error", (err) => {
+        console.warn(`[MitmProxy] WebSocket connect error for ${hostname}:`, err.message);
+        clientSocket.destroy();
+      });
+    }
+  }
+
+  /**
+   * Parse raw HTTP response headers into a key-value object.
+   */
+  private parseRawHeaders(raw: string): Record<string, string> {
+    const headers: Record<string, string> = {};
+    const lines = raw.split("\r\n").slice(1); // skip status line
+    for (const line of lines) {
+      if (!line) break;
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > 0) {
+        const key = line.substring(0, colonIdx).trim().toLowerCase();
+        const value = line.substring(colonIdx + 1).trim();
+        headers[key] = value;
+      }
+    }
+    return headers;
   }
 
   /**
@@ -648,7 +886,7 @@ export class MitmProxyServer extends EventEmitter {
 
       const isStreaming =
         contentType?.includes("text/event-stream") || false;
-      const isWebSocket = false; // WebSocket is tunneled, not intercepted
+      const isWebSocket = false; // Regular HTTP/HTTPS — WS upgrade is handled separately
       const isOptions = method === "OPTIONS";
       const isStatic = STATIC_EXTENSIONS.test(fullUrl);
 

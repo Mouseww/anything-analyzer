@@ -234,6 +234,7 @@ export function registerIpcHandlers(deps: {
       url: t.url,
       title: t.title,
       isActive: t.id === activeTab?.id,
+      isLoading: t.isLoading,
     }));
   });
 
@@ -263,7 +264,7 @@ export function registerIpcHandlers(deps: {
     );
     tabManager.on(
       "tab-updated",
-      (data: { tabId: string; url?: string; title?: string }) => {
+      (data: { tabId: string; url?: string; title?: string; isLoading?: boolean }) => {
         mainWin.webContents.send("tabs:updated", data);
       },
     );

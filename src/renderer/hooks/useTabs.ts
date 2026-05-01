@@ -5,6 +5,7 @@ export interface UseTabsReturn {
   tabs: BrowserTab[];
   activeTabId: string | null;
   activeTabUrl: string;
+  isActiveTabLoading: boolean;
   activateTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
   createTab: (url?: string) => void;
@@ -20,6 +21,7 @@ export function useTabs(): UseTabsReturn {
 
   // Derive active tab URL
   const activeTabUrl = tabs.find((t) => t.id === activeTabId)?.url || "";
+  const isActiveTabLoading = tabs.find((t) => t.id === activeTabId)?.isLoading || false;
 
   // Load initial tab state
   useEffect(() => {
@@ -62,7 +64,7 @@ export function useTabs(): UseTabsReturn {
     );
 
     window.electronAPI.onTabUpdated(
-      (data: { tabId: string; url?: string; title?: string }) => {
+      (data: { tabId: string; url?: string; title?: string; isLoading?: boolean }) => {
         setTabs((prev) =>
           prev.map((t) => {
             if (t.id !== data.tabId) return t;
@@ -70,6 +72,7 @@ export function useTabs(): UseTabsReturn {
               ...t,
               url: data.url ?? t.url,
               title: data.title ?? t.title,
+              isLoading: data.isLoading ?? t.isLoading,
             };
           }),
         );
@@ -96,5 +99,5 @@ export function useTabs(): UseTabsReturn {
     window.electronAPI.createTab(url);
   }, []);
 
-  return { tabs, activeTabId, activeTabUrl, activateTab, closeTab, createTab };
+  return { tabs, activeTabId, activeTabUrl, isActiveTabLoading, activateTab, closeTab, createTab };
 }

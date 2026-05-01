@@ -5,6 +5,7 @@
   padding: var(--space-sm) var(--space-md);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  position: relative;
 }
 
 .navBtns {
@@ -47,4 +48,20 @@
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* Loading progress bar */
+.loadingBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-primary, #5865f2);
+  animation: loadingSlide 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingSlide {
+  0% { width: 0; left: 0; }
+  50% { width: 60%; left: 20%; }
+  100% { width: 0; left: 100%; }
 }

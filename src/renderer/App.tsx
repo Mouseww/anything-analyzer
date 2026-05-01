@@ -44,7 +44,7 @@ function App(): React.ReactElement {
     stopCapture
   } = useSession()
 
-  const { tabs, activeTabId, activeTabUrl, activateTab, closeTab, createTab } = useTabs()
+  const { tabs, activeTabId, activeTabUrl, isActiveTabLoading, activateTab, closeTab, createTab } = useTabs()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeView, setActiveView] = useState<AppView>('browser')
@@ -390,6 +390,7 @@ function App(): React.ReactElement {
           {/* Browser panel - address bar + nav buttons + capture pills */}
           <BrowserPanel
             currentUrl={activeTabUrl}
+            isLoading={isActiveTabLoading}
             onNavigate={handleNavigate}
             onBack={handleBack}
             onForward={handleForward}
