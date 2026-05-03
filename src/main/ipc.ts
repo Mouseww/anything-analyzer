@@ -554,6 +554,18 @@ export function registerIpcHandlers(deps: {
 
   ipcMain.handle("mcp-server:saveConfig", async (_event, config: MCPServerSettings) => {
     saveMCPServerConfig(config);
+
+    const { initMCPServer, stopMCPServer, isMCPServerRunning } = await import("./mcp/mcp-server");
+    if (config.enabled && !isMCPServerRunning()) {
+      await initMCPServer(
+        { sessionManager, aiAnalyzer, windowManager, requestsRepo, jsHooksRepo, storageSnapshotsRepo, reportsRepo, interactionEventsRepo },
+        config.port,
+        config.authEnabled,
+        config.authToken,
+      );
+    } else if (!config.enabled && isMCPServerRunning()) {
+      await stopMCPServer();
+    }
   });
 
   ipcMain.handle("mcp-server:status", async () => {
