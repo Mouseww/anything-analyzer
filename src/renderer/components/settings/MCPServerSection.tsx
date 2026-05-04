@@ -125,7 +125,7 @@ export default function MCPServerSection() {
       <Button variant="primary" block onClick={async () => {
         const config: MCPServerSettings = { enabled, port, authEnabled, authToken }
         await window.electronAPI.saveMCPServerConfig(config)
-        toast.success('MCP Server 配置已保存，重启应用后生效')
+        toast.success('MCP Server 配置已保存')
         const status = await window.electronAPI.getMCPServerStatus()
         setRunning(status.running)
       }}>
