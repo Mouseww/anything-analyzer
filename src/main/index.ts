@@ -27,8 +27,19 @@ import { loadMitmProxyConfig, saveMitmProxyConfig } from "./proxy/mitm-proxy-con
 import { SystemProxy } from "./proxy/system-proxy";
 import { ProfileStore } from "./fingerprint/profile-store";
 import { join } from "path";
+import { randomUUID } from "node:crypto";
+
+// Ignore all certificate errors (self-signed, expired, etc.)
+app.commandLine.appendSwitch("ignore-certificate-errors");
+app.commandLine.appendSwitch("ignore-certificate-errors-spki-list");
 
 const windowManager = new WindowManager();
+
+/** Pending client-certificate selections awaiting user choice. */
+const pendingCertSelections = new Map<
+  string,
+  { certificates: Electron.Certificate[]; callback: (cert: Electron.Certificate) => void }
+>();
 const mcpManager = new MCPClientManager();
 let sessionManagerRef: SessionManager | null = null;
 let quitInProgress = false;
@@ -135,6 +146,25 @@ app.whenReady().then(async () => {
     interactionEventsRepo,
   });
 
+  // Client-certificate IPC handlers
+  ipcMain.handle("client-cert:select", (_event, id: string, index: number) => {
+    const pending = pendingCertSelections.get(id);
+    if (!pending) return;
+    const cert = pending.certificates[index];
+    if (cert) {
+      pending.callback(cert);
+    }
+    pendingCertSelections.delete(id);
+  });
+
+  ipcMain.handle("client-cert:cancel", (_event, id: string) => {
+    const pending = pendingCertSelections.get(id);
+    if (pending) {
+      // Not calling callback cancels the connection.
+      pendingCertSelections.delete(id);
+    }
+  });
+
   // Check for updates on startup (non-blocking, delayed 3s)
   setTimeout(() => updater.checkForUpdates(), 3000);
 
@@ -177,15 +207,40 @@ app.whenReady().then(async () => {
       .catch((err) => console.error("[Main] Failed to auto-start MITM proxy:", err));
   }
 
-  // Trust certificates issued by our MITM CA inside Electron.
-  // Without this, HTTPS requests through the MITM proxy fail with SSL errors
-  // that can crash Chromium's network stack (0xC0000005).
-  app.on("certificate-error", (event, _webContents, _url, _error, certificate, callback) => {
-    if (mitmProxy.isRunning() && certificate.issuerName === "Anything Analyzer CA") {
-      event.preventDefault();
-      callback(true);
+  // Trust ALL certificates (self-signed, expired, etc.) — required for analysis scenarios.
+  // This plus the --ignore-certificate-errors switch ensures maximum compatibility.
+  app.on("certificate-error", (event, _webContents, _url, _error, _certificate, callback) => {
+    event.preventDefault();
+    callback(true);
+  });
+
+  // Handle client-certificate selection: forward to renderer for user choice.
+  app.on("select-client-certificate", (event, _webContents, url, list, callback) => {
+    event.preventDefault();
+
+    const id = randomUUID();
+    pendingCertSelections.set(id, { certificates: list, callback });
+
+    const mainWin = windowManager.getMainWindow();
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.send("client-cert:select", {
+        id,
+        url,
+        certificates: list.map((cert, index) => ({
+          index,
+          issuerName: cert.issuerName,
+          subjectName: cert.subjectName,
+          serialNumber: cert.serialNumber,
+          validStart: cert.validStart,
+          validExpiry: cert.validExpiry,
+        })),
+      });
     } else {
-      callback(false);
+      // No window available — auto-select first certificate as fallback.
+      if (list.length > 0) {
+        callback(list[0]);
+      }
+      pendingCertSelections.delete(id);
     }
   });
 

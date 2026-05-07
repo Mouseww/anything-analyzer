@@ -686,6 +686,22 @@ export interface ElectronAPI {
   getLogPath: () => Promise<string>;
   openLogFolder: () => Promise<void>;
   exportLogs: () => Promise<boolean>;
+
+  // Client certificate selection
+  selectClientCert: (id: string, index: number) => Promise<void>;
+  cancelClientCert: (id: string) => Promise<void>;
+  onClientCertSelect: (callback: (data: {
+    id: string;
+    url: string;
+    certificates: Array<{
+      index: number;
+      issuerName: string;
+      subjectName: string;
+      serialNumber: string;
+      validStart: number;
+      validExpiry: number;
+    }>;
+  }) => void) => void;
 }
 
 declare global {

@@ -205,6 +205,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openLogFolder: () => ipcRenderer.invoke("log:openFolder"),
   exportLogs: () => ipcRenderer.invoke("log:export"),
 
+  // Client certificate selection
+  selectClientCert: (id: string, index: number) =>
+    ipcRenderer.invoke("client-cert:select", id, index),
+  cancelClientCert: (id: string) =>
+    ipcRenderer.invoke("client-cert:cancel", id),
+  onClientCertSelect: (callback: (data: {
+    id: string;
+    url: string;
+    certificates: Array<{
+      index: number;
+      issuerName: string;
+      subjectName: string;
+      serialNumber: string;
+      validStart: number;
+      validExpiry: number;
+    }>;
+  }) => void) => {
+    ipcRenderer.on("client-cert:select", (_event, data) => callback(data));
+  },
+
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
   },

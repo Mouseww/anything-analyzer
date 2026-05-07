@@ -20,6 +20,7 @@ import { useCapture } from './hooks/useCapture'
 import { useTabs } from './hooks/useTabs'
 import { useConfirm } from './hooks/useConfirm'
 import { useToast } from './ui/Toast'
+import { Modal } from './ui'
 
 import { LocaleProvider } from './i18n'
 import { zh } from './i18n/zh'
@@ -98,6 +99,28 @@ function App(): React.ReactElement {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Listen for client-certificate selection requests from main process
+  useEffect(() => {
+    const handler = (data: {
+      id: string;
+      url: string;
+      certificates: Array<{
+        index: number;
+        issuerName: string;
+        subjectName: string;
+        serialNumber: string;
+        validStart: number;
+        validExpiry: number;
+      }>;
+    }) => {
+      setClientCertDialog({ open: true, ...data });
+    };
+    window.electronAPI.onClientCertSelect(handler);
+    return () => {
+      window.electronAPI.removeAllListeners('client-cert:select');
+    };
+  }, []);
+
   const openSettings = useCallback(() => {
     setSettingsOpen(true)
     window.electronAPI.setTargetViewVisible(false)
@@ -113,6 +136,21 @@ function App(): React.ReactElement {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
   const [selectedSeqs, setSelectedSeqs] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState('requests')
+
+  // Client certificate selection dialog state
+  const [clientCertDialog, setClientCertDialog] = useState<{
+    open: boolean;
+    id: string;
+    url: string;
+    certificates: Array<{
+      index: number;
+      issuerName: string;
+      subjectName: string;
+      serialNumber: string;
+      validStart: number;
+      validExpiry: number;
+    }>;
+  }>({ open: false, id: '', url: '', certificates: [] });
 
   /** Ref to browser placeholder for reporting exact bounds to main process */
   const placeholderRef = useRef<HTMLDivElement>(null)
@@ -252,6 +290,17 @@ function App(): React.ReactElement {
     if (!currentSessionId) return
     await sendFollowUp(currentSessionId, msg)
   }, [currentSessionId, sendFollowUp])
+
+  // Client certificate selection handlers
+  const handleSelectCert = useCallback((index: number) => {
+    window.electronAPI.selectClientCert(clientCertDialog.id, index).catch(() => {});
+    setClientCertDialog(prev => ({ ...prev, open: false }));
+  }, [clientCertDialog.id]);
+
+  const handleCancelCert = useCallback(() => {
+    window.electronAPI.cancelClientCert(clientCertDialog.id).catch(() => {});
+    setClientCertDialog(prev => ({ ...prev, open: false }));
+  }, [clientCertDialog.id]);
 
   // Pill button style for capture controls in browser address bar
   const pillStyle: React.CSSProperties = {
@@ -648,6 +697,78 @@ function App(): React.ReactElement {
       <SettingsModal open={settingsOpen} onClose={closeSettings} currentSessionId={currentSession?.id ?? null} />
       {/* Confirm dialog (portal) */}
       {ConfirmDialog}
+
+      {/* Client certificate selection modal */}
+      <Modal
+        open={clientCertDialog.open}
+        onClose={handleCancelCert}
+        title={t('clientCert.title') || '选择客户端证书'}
+        footer={null}
+        width={560}
+      >
+        <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', marginBottom: 16 }}>
+          {(t('clientCert.url') || '网站')}: <code style={{ wordBreak: 'break-all' }}>{clientCertDialog.url}</code>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {clientCertDialog.certificates.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', padding: '16px 0' }}>
+              {t('clientCert.none') || '没有可用的客户端证书'}
+            </div>
+          ) : (
+            clientCertDialog.certificates.map((cert) => (
+              <button
+                key={cert.index}
+                onClick={() => handleSelectCert(cert.index)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: 4,
+                  padding: '12px 16px',
+                  borderRadius: 6,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-active)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; }}
+              >
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 'var(--font-size-base)' }}>
+                  {cert.subjectName || cert.serialNumber}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-2xs)' }}>
+                  {(t('clientCert.issuer') || '颁发者')}: {cert.issuerName || '-'}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-2xs)' }}>
+                  {(t('clientCert.serial') || '序列号')}: {cert.serialNumber || '-'} |
+                  {' '}{(t('clientCert.valid') || '有效期')}: {new Date(cert.validStart).toLocaleDateString()} - {new Date(cert.validExpiry).toLocaleDateString()}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20, gap: 10 }}>
+          <button
+            onClick={handleCancelCert}
+            style={{
+              padding: '6px 16px',
+              borderRadius: 6,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-active)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 'var(--font-size-sm)',
+            }}
+          >
+            {t('clientCert.cancel') || '取消'}
+          </button>
+        </div>
+      </Modal>
     </div>
     </LocaleProvider>
   )
