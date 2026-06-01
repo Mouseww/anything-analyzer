@@ -125,7 +125,7 @@ export default function LLMSection() {
         <Input
           value={model}
           onChange={e => setModel(e.target.value)}
-          placeholder="gpt-4o / claude-sonnet-4-20250514 / MiniMax-M2.7 / ..."
+          placeholder="gpt-4o / claude-sonnet-4-20250514 / MiniMax-M3 / ..."
         />
       </div>
 

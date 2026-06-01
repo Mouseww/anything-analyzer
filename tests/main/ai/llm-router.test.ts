@@ -77,7 +77,7 @@ describe("LLMRouter", () => {
         name: "minimax",
         baseUrl: "https://api.minimax.io/anthropic/v1",
         apiKey: "test-minimax-key",
-        model: "MiniMax-M2.7",
+        model: "MiniMax-M3",
         maxTokens: 4096,
       };
       fetchSpy.mockResolvedValueOnce(
@@ -99,7 +99,7 @@ describe("LLMRouter", () => {
         name: "minimax",
         baseUrl: "https://api.minimax.io/anthropic/v1",
         apiKey: "test-minimax-key",
-        model: "MiniMax-M2.7",
+        model: "MiniMax-M3",
         maxTokens: 4096,
       };
       fetchSpy.mockResolvedValueOnce(
@@ -442,7 +442,7 @@ describe("LLMRouter", () => {
         name: "minimax",
         baseUrl: "https://api.minimax.io/anthropic/v1",
         apiKey: "test-minimax-key",
-        model: "MiniMax-M2.7",
+        model: "MiniMax-M3",
         maxTokens: 4096,
       };
       fetchSpy.mockResolvedValueOnce(
@@ -465,7 +465,7 @@ describe("LLMRouter", () => {
         name: "minimax",
         baseUrl: "https://api.minimax.io/anthropic/v1",
         apiKey: "test-minimax-key",
-        model: "MiniMax-M2.7",
+        model: "MiniMax-M3",
         maxTokens: 4096,
       };
       fetchSpy.mockResolvedValueOnce(
