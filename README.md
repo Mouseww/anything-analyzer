@@ -255,11 +255,14 @@ Thanks to everyone on [LinuxDo](https://linux.do/) for their support!
 
 ---
 
-## 推荐资源
+## 赞助鸣谢（下面的服务都是大家日常需要的哦！）
 
 | | |
 |:---:|---|
-| <a href="https://doloffer.com/friend/Pa34D0CG"><img src="resources/doloffer-logo.png" width="180" alt="Doloffer"></a> | **[Doloffer](https://doloffer.com/friend/Pa34D0CG)** — GPT / Claude 正版会员订阅，优惠价充值，售后无忧。<br>📖 [使用指南](https://github.com/Doloffer-g/guide) \| 🎁 优惠码：`Al8888`（享 9 折） |
+| <a href="https://doloffer.com/friend/Pa34D0CG"><img src="resources/doloffer-logo.png" width="180" alt="Doloffer"></a> | **[Doloffer](https://doloffer.com/friend/Pa34D0CG)** — GPT / Claude 真**正版*会员订阅，比官网便宜很多的优惠价，我自己也在用，裂墙推荐。<br>📖 [使用指南](https://github.com/Doloffer-g/guide) \| 🎁 优惠码：`Al8888`（享 9 折） |
+| <a href="https://www.swiftproxy.net/?code=BYQBRGQD3"><img width="630" height="210" alt="76e524315acd54b5b134b4c26aab13f3" src="https://github.com/user-attachments/assets/df47391e-0eed-4196-916d-b50755a6e0e9"></a> | **[Swiftproxy](https://www.swiftproxy.net/?code=BYQBRGQD3)** —— 高质量住宅代理服务，覆盖全球190+国家，拥有8000万+动态住宅IP，支持高匿名、稳定连接，流量不过期，并提供免费测试。适用于数据采集、AI自动化、浏览器模拟及各类数据分析场景。 \| 🎁 优惠码：`PROXY90`（享 9 折） |
+
+---
 
 ## Star History
 
