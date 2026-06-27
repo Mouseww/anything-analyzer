@@ -15,8 +15,10 @@ import {
 import type { UpdateStatus } from '@shared/types'
 import PromptTemplateModal from '../PromptTemplateModal'
 import MCPServerModal from '../MCPServerModal'
+import { useLocale } from '../../i18n'
 
 export default function GeneralSection() {
+  const { t } = useLocale()
   const [appVersion, setAppVersion] = useState('')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
@@ -79,33 +81,33 @@ export default function GeneralSection() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
         {updateStatus.state === 'idle' && (
           <Button size="sm" icon={<IconSync size={14} />} onClick={handleCheckUpdate}>
-            检查更新
+            {t('settings.checkForUpdates')}
           </Button>
         )}
         {updateStatus.state === 'checking' && (
           <Button size="sm" icon={<IconLoading size={14} />} disabled>
-            正在检查...
+            {t('settings.checkingUpdates')}
           </Button>
         )}
         {updateStatus.state === 'not-available' && (
           <>
             <IconCheckCircle size={14} style={{ color: 'var(--color-success)' }} />
-            <span style={{ fontSize: 'var(--font-size-base)' }}>已是最新版本</span>
-            <Button size="sm" onClick={handleCheckUpdate}>重新检查</Button>
+            <span style={{ fontSize: 'var(--font-size-base)' }}>{t('settings.upToDate')}</span>
+            <Button size="sm" onClick={handleCheckUpdate}>{t('settings.checkAgain')}</Button>
           </>
         )}
         {updateStatus.state === 'available' && (
           <>
-            <Tag color="info">v{updateStatus.info?.version} 可用</Tag>
-            <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-base)' }}>正在下载...</span>
+            <Tag color="info">{t('settings.versionAvailable', { version: updateStatus.info?.version ?? '' })}</Tag>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-base)' }}>{t('settings.downloading')}</span>
           </>
         )}
         {updateStatus.state === 'downloaded' && (
           <>
             <IconCloudDownload size={14} style={{ color: 'var(--color-accent)' }} />
-            <span style={{ fontSize: 'var(--font-size-base)' }}>v{updateStatus.info?.version} 已就绪</span>
+            <span style={{ fontSize: 'var(--font-size-base)' }}>{t('settings.versionReady', { version: updateStatus.info?.version ?? '' })}</span>
             <Button variant="primary" size="sm" onClick={handleInstallUpdate}>
-              立即重启更新
+              {t('settings.restartToUpdate')}
             </Button>
           </>
         )}
@@ -113,7 +115,7 @@ export default function GeneralSection() {
           <>
             <IconCloseCircle size={14} style={{ color: 'var(--color-error)' }} />
             <span style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-sm)' }}>{updateStatus.error}</span>
-            <Button size="sm" onClick={handleCheckUpdate}>重试</Button>
+            <Button size="sm" onClick={handleCheckUpdate}>{t('settings.retry')}</Button>
           </>
         )}
       </div>
@@ -127,14 +129,14 @@ export default function GeneralSection() {
 
       <div style={{ marginTop: 24 }}>
         <div style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>
-          管理工具
+          {t('settings.managementTools')}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
           <Button icon={<IconEdit size={14} />} block onClick={() => setTemplateModalOpen(true)}>
-            管理提示词模板
+            {t('settings.managePromptTemplates')}
           </Button>
           <Button icon={<IconApi size={14} />} block onClick={() => setMcpModalOpen(true)}>
-            管理 MCP 服务器
+            {t('settings.manageMcpServers')}
           </Button>
         </div>
       </div>
@@ -142,17 +144,17 @@ export default function GeneralSection() {
       {/* Error Logs */}
       <div style={{ marginTop: 24 }}>
         <div style={{ fontSize: 'var(--font-size-base)', fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)' }}>
-          错误日志
+          {t('settings.errorLogs')}
         </div>
         <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: 8 }}>
-          遇到问题时可导出日志文件发送给开发者以便排查
+          {t('settings.errorLogsHelp')}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button icon={<IconFileText size={14} />} onClick={() => window.electronAPI.openLogFolder()}>
-            打开日志目录
+            {t('settings.openLogFolder')}
           </Button>
           <Button icon={<IconExport size={14} />} onClick={() => window.electronAPI.exportLogs()}>
-            导出日志
+            {t('settings.exportLogs')}
           </Button>
         </div>
       </div>

@@ -7,16 +7,17 @@ import ProxySection from './settings/ProxySection'
 import MCPServerSection from './settings/MCPServerSection'
 import MitmProxySection from './settings/MitmProxySection'
 import FingerprintSection from './settings/FingerprintSection'
+import { useLocale, type LocaleKey } from '../i18n'
 
 type SettingsSection = 'general' | 'llm' | 'proxy' | 'mcp-server' | 'mitm-proxy' | 'fingerprint'
 
-const menuItems: { key: SettingsSection; icon: React.FC<{ size?: number | string }>; label: string }[] = [
-  { key: 'general', icon: IconApp, label: '通用' },
-  { key: 'llm', icon: IconRobot, label: 'LLM' },
-  { key: 'proxy', icon: IconGlobe, label: '代理' },
-  { key: 'mcp-server', icon: IconBolt, label: 'MCP Server' },
-  { key: 'mitm-proxy', icon: IconShield, label: 'MITM 代理' },
-  { key: 'fingerprint', icon: IconCode, label: '指纹' },
+const menuItems: { key: SettingsSection; icon: React.FC<{ size?: number | string }>; labelKey: LocaleKey }[] = [
+  { key: 'general', icon: IconApp, labelKey: 'settings.general' },
+  { key: 'llm', icon: IconRobot, labelKey: 'settings.llm' },
+  { key: 'proxy', icon: IconGlobe, labelKey: 'settings.proxy' },
+  { key: 'mcp-server', icon: IconBolt, labelKey: 'settings.mcpServer' },
+  { key: 'mitm-proxy', icon: IconShield, labelKey: 'settings.mitmProxy' },
+  { key: 'fingerprint', icon: IconCode, labelKey: 'settings.fingerprint' },
 ]
 
 const sectionComponents: Record<SettingsSection, React.ComponentType> = {
@@ -31,13 +32,14 @@ const sectionComponents: Record<SettingsSection, React.ComponentType> = {
 interface Props { open: boolean; onClose: () => void; currentSessionId?: string | null }
 
 export default function SettingsModal({ open, onClose, currentSessionId }: Props) {
+  const { t } = useLocale()
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
 
   const ActiveComponent = sectionComponents[activeSection]
 
   return (
     <Modal
-      title="Settings"
+      title={t('settings.title')}
       open={open}
       onClose={onClose}
       width={900}
@@ -81,7 +83,7 @@ export default function SettingsModal({ open, onClose, currentSessionId }: Props
                 }}
               >
                 <Icon size={16} />
-                <span style={{ color: 'inherit', fontSize: 'inherit' }}>{item.label}</span>
+                <span style={{ color: 'inherit', fontSize: 'inherit' }}>{t(item.labelKey)}</span>
               </div>
             )
           })}
