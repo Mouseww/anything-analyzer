@@ -497,6 +497,43 @@ describe("LLMRouter", () => {
     });
   });
 
+  it("normalizes tool names for compatible providers and routes back to the original name", async () => {
+    const config: LLMProviderConfig = { ...baseConfig, apiType: "responses" };
+    fetchSpy.mockResolvedValueOnce(
+      createJSONResponse({
+        output: [{ type: "function_call", call_id: "call-1", name: "get_page", arguments: "{}" }],
+      }),
+    ).mockResolvedValueOnce(
+      createJSONResponse({
+        output: [{ type: "message", content: [{ type: "output_text", text: "done" }] }],
+      }),
+    );
+
+    const calledNames: string[] = [];
+    const router = new LLMRouter(config);
+    await router.completeWithTools(
+      [{ role: "user", content: "test" }],
+      [
+        { name: "get.page", description: "Get page", inputSchema: { type: "object" } },
+        { name: "lookup", description: "First lookup", inputSchema: { type: "object" } },
+        { name: "lookup", description: "Second lookup", inputSchema: { type: "object" } },
+      ],
+      async (name) => {
+        calledNames.push(name);
+        return "tool result";
+      },
+    );
+
+    const [, firstOptions] = fetchSpy.mock.calls[0];
+    const firstBody = JSON.parse(firstOptions.body);
+    expect(firstBody.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      "get_page",
+      "lookup",
+      "lookup_2",
+    ]);
+    expect(firstBody.tools.every((tool: { strict: boolean }) => tool.strict === false)).toBe(true);
+    expect(calledNames).toEqual(["get.page"]);
+  });
   describe("completeWithTools - Responses API", () => {
     it("should reject failed Responses API tool rounds explicitly", async () => {
       const config: LLMProviderConfig = { ...baseConfig, apiType: "responses" };

@@ -22,6 +22,27 @@ interface ToolCall {
   function: { name: string; arguments: string };
 }
 
+interface ToolBinding {
+  exposedName: string;
+  tool: MCPToolInfo;
+}
+
+function createToolBindings(tools: MCPToolInfo[]): ToolBinding[] {
+  const usedNames = new Set<string>();
+  return tools.map((tool, index) => {
+    const baseName = tool.name.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 64) || `tool_${index + 1}`;
+    let exposedName = baseName;
+    let suffix = 2;
+    while (usedNames.has(exposedName)) {
+      const suffixText = `_${suffix}`;
+      exposedName = `${baseName.slice(0, 64 - suffixText.length)}${suffixText}`;
+      suffix += 1;
+    }
+    usedNames.add(exposedName);
+    return { exposedName, tool };
+  });
+}
+
 interface ResponsesIncompleteDetails {
   reason?: string;
 }
@@ -260,16 +281,16 @@ export class LLMRouter {
     tools: MCPToolInfo[],
     callTool: (name: string, args: Record<string, unknown>) => Promise<string>,
     onChunk?: (chunk: string) => void,
-    maxRounds = 10,
+    _maxRounds = 10,
     signal?: AbortSignal,
   ): Promise<LLMResponse> {
     if (this.config.name === "anthropic" || this.config.name === "minimax") {
-      return this.agenticLoopAnthropic(messages, tools, callTool, onChunk, maxRounds, signal);
+      return this.agenticLoopAnthropic(messages, tools, callTool, onChunk, _maxRounds, signal);
     }
     if (this.config.apiType === "responses") {
-      return this.agenticLoopResponses(messages, tools, callTool, onChunk, maxRounds, signal);
+      return this.agenticLoopResponses(messages, tools, callTool, onChunk, _maxRounds, signal);
     }
-    return this.agenticLoopOpenAI(messages, tools, callTool, onChunk, maxRounds, signal);
+    return this.agenticLoopOpenAI(messages, tools, callTool, onChunk, _maxRounds, signal);
   }
 
   // ---- Agentic Loop: OpenAI / Custom ----
@@ -279,15 +300,20 @@ export class LLMRouter {
     tools: MCPToolInfo[],
     callTool: (name: string, args: Record<string, unknown>) => Promise<string>,
     onChunk?: (chunk: string) => void,
-    maxRounds = 10,
+    _maxRounds = 10,
     signal?: AbortSignal,
   ): Promise<LLMResponse> {
-    const openaiTools = tools.map((t) => ({
+    const bindings = createToolBindings(tools);
+    const bindingByExposedName = new Map(bindings.map((binding) => [binding.exposedName, binding]));
+    const callBoundTool = (name: string, args: Record<string, unknown>): Promise<string> =>
+      callTool(bindingByExposedName.get(name)?.tool.name ?? name, args);
+    const openaiTools = bindings.map((binding) => ({
       type: "function" as const,
       function: {
-        name: t.name,
-        description: t.description,
-        parameters: t.inputSchema,
+        name: binding.exposedName,
+        description: binding.tool.description,
+        parameters: binding.tool.inputSchema,
+        strict: false,
       },
     }));
 
@@ -295,7 +321,7 @@ export class LLMRouter {
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
 
-    for (let round = 0; round < maxRounds; round++) {
+    for (;;) {
       const url = `${this.config.baseUrl.replace(/\/$/, "")}/chat/completions`;
       const body = {
         model: this.config.model,
@@ -367,7 +393,7 @@ export class LLMRouter {
 
         // 通知前端正在调用工具
         if (onChunk) {
-          const toolNames = assistantMsg.tool_calls.map((tc) => tc.function.name).join(", ");
+          const toolNames = assistantMsg.tool_calls.map((tc) => bindingByExposedName.get(tc.function.name)?.tool.name ?? tc.function.name).join(", ");
           onChunk(`\n\n> 🔧 调用工具: ${toolNames}\n\n`);
         }
 
@@ -375,7 +401,7 @@ export class LLMRouter {
           const args = readToolArguments(tc.function.arguments, "tool_call");
           let result: string;
           try {
-            result = await callTool(tc.function.name, args);
+            result = await callBoundTool(tc.function.name, args);
           } catch (err) {
             result = `Error: ${err instanceof Error ? err.message : String(err)}`;
           }
@@ -402,8 +428,6 @@ export class LLMRouter {
       };
     }
 
-    // Max rounds exceeded — do final call without tools to force text response
-    return this.complete(history, onChunk, signal);
   }
 
   // ---- Agentic Loop: Anthropic ----
@@ -413,13 +437,17 @@ export class LLMRouter {
     tools: MCPToolInfo[],
     callTool: (name: string, args: Record<string, unknown>) => Promise<string>,
     onChunk?: (chunk: string) => void,
-    maxRounds = 10,
+    _maxRounds = 10,
     signal?: AbortSignal,
   ): Promise<LLMResponse> {
-    const anthropicTools = tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      input_schema: t.inputSchema,
+    const bindings = createToolBindings(tools);
+    const bindingByExposedName = new Map(bindings.map((binding) => [binding.exposedName, binding]));
+    const callBoundTool = (name: string, args: Record<string, unknown>): Promise<string> =>
+      callTool(bindingByExposedName.get(name)?.tool.name ?? name, args);
+    const anthropicTools = bindings.map((binding) => ({
+      name: binding.exposedName,
+      description: binding.tool.description,
+      input_schema: binding.tool.inputSchema,
     }));
 
     const systemMsg = messages.find((m) => m.role === "system");
@@ -431,7 +459,7 @@ export class LLMRouter {
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
 
-    for (let round = 0; round < maxRounds; round++) {
+    for (;;) {
       const url = `${this.config.baseUrl.replace(/\/$/, "")}/messages`;
       const body: Record<string, unknown> = {
         model: this.config.model,
@@ -481,7 +509,7 @@ export class LLMRouter {
         history.push({ role: "assistant", content: data.content });
 
         if (onChunk) {
-          const toolNames = toolUseBlocks.map((b) => b.name).join(", ");
+          const toolNames = toolUseBlocks.map((b) => bindingByExposedName.get(b.name)?.tool.name ?? b.name).join(", ");
           onChunk(`\n\n> 🔧 调用工具: ${toolNames}\n\n`);
         }
 
@@ -490,7 +518,7 @@ export class LLMRouter {
         for (const block of toolUseBlocks) {
           let result: string;
           try {
-            result = await callTool(block.name, block.input);
+            result = await callBoundTool(block.name, block.input);
           } catch (err) {
             result = `Error: ${err instanceof Error ? err.message : String(err)}`;
           }
@@ -514,8 +542,6 @@ export class LLMRouter {
       };
     }
 
-    // Max rounds exceeded — final call without tools
-    return this.complete(messages, onChunk, signal);
   }
 
   // ---- Agentic Loop: OpenAI Responses API ----
@@ -525,14 +551,19 @@ export class LLMRouter {
     tools: MCPToolInfo[],
     callTool: (name: string, args: Record<string, unknown>) => Promise<string>,
     onChunk?: (chunk: string) => void,
-    maxRounds = 10,
+    _maxRounds = 10,
     signal?: AbortSignal,
   ): Promise<LLMResponse> {
-    const responsesTools = tools.map((t) => ({
+    const bindings = createToolBindings(tools);
+    const bindingByExposedName = new Map(bindings.map((binding) => [binding.exposedName, binding]));
+    const callBoundTool = (name: string, args: Record<string, unknown>): Promise<string> =>
+      callTool(bindingByExposedName.get(name)?.tool.name ?? name, args);
+    const responsesTools = bindings.map((binding) => ({
       type: "function" as const,
-      name: t.name,
-      description: t.description,
-      parameters: t.inputSchema,
+      name: binding.exposedName,
+      description: binding.tool.description,
+      parameters: binding.tool.inputSchema,
+      strict: false,
     }));
 
     const systemMsg = messages.find((m) => m.role === "system");
@@ -543,7 +574,7 @@ export class LLMRouter {
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
 
-    for (let round = 0; round < maxRounds; round++) {
+    for (;;) {
       const url = `${this.config.baseUrl.replace(/\/$/, "")}/responses`;
       const body: Record<string, unknown> = {
         model: this.config.model,
@@ -605,7 +636,7 @@ export class LLMRouter {
         }
 
         if (onChunk) {
-          const toolNames = functionCalls.map((fc) => fc.name).join(", ");
+          const toolNames = functionCalls.map((fc) => bindingByExposedName.get(fc.name)?.tool.name ?? fc.name).join(", ");
           onChunk(`\n\n> 🔧 调用工具: ${toolNames}\n\n`);
         }
 
@@ -613,7 +644,7 @@ export class LLMRouter {
           let result: string;
           const args = readToolArguments(fc.arguments, "function_call");
           try {
-            result = await callTool(fc.name, args);
+            result = await callBoundTool(fc.name, args);
           } catch (err) {
             result = `Error: ${err instanceof Error ? err.message : String(err)}`;
           }
@@ -637,8 +668,6 @@ export class LLMRouter {
       };
     }
 
-    // Max rounds exceeded — do final call without tools
-    return this.completeResponses(messages, onChunk, signal);
   }
 
   private async completeOpenAI(
