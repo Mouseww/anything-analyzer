@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Input, PasswordInput, Select, InputNumber, Button, useToast } from '../../ui'
 import type { LLMProviderConfig, LLMProviderType, OpenAIApiType } from '@shared/types'
+import { useLocale } from '../../i18n'
 
 const defaultUrls: Record<LLMProviderType, string> = {
   openai: 'https://api.openai.com/v1',
@@ -22,6 +23,7 @@ const fieldStyle: React.CSSProperties = {
 
 export default function LLMSection() {
   const toast = useToast()
+  const { t } = useLocale()
   const [name, setName] = useState<LLMProviderType>('openai')
   const [apiType, setApiType] = useState<OpenAIApiType | undefined>('completions')
   const [baseUrl, setBaseUrl] = useState(defaultUrls.openai)
@@ -57,7 +59,7 @@ export default function LLMSection() {
 
   const handleSave = async () => {
     if (!baseUrl || !apiKey || !model) {
-      toast.warning('请填写必填项（Base URL、API Key、Model）')
+      toast.warning(t('settings.llmRequiredFields'))
       return
     }
     const config: LLMProviderConfig = {
@@ -69,7 +71,7 @@ export default function LLMSection() {
       ...(showApiType && apiType ? { apiType } : {}),
     }
     await window.electronAPI.saveLLMConfig(config)
-    toast.success('LLM 配置已保存')
+    toast.success(t('settings.llmSaved'))
   }
 
   return (
@@ -83,7 +85,7 @@ export default function LLMSection() {
             { label: 'OpenAI', value: 'openai' },
             { label: 'Anthropic', value: 'anthropic' },
             { label: 'MiniMax', value: 'minimax' },
-            { label: 'Custom (OpenAI Compatible)', value: 'custom' },
+            { label: t('settings.customOpenAICompatible'), value: 'custom' },
           ]}
         />
       </div>
@@ -141,7 +143,7 @@ export default function LLMSection() {
       </div>
 
       <Button variant="primary" block onClick={handleSave}>
-        保存 LLM 配置
+        {t('settings.saveLlmConfig')}
       </Button>
     </div>
   )
