@@ -135,7 +135,7 @@ export default function LLMSection() {
           value={maxTokens}
           onChange={v => v !== null && setMaxTokens(v)}
           min={256}
-          max={128000}
+          max={1000000}
           style={{ width: '100%' }}
         />
       </div>
