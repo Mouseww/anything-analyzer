@@ -257,6 +257,74 @@ describe("LLMRouter", () => {
       expect(result.completionTokens).toBe(10);
     });
 
+    it("should route cheaperinference to OpenAI chat completions endpoint", async () => {
+      const config: LLMProviderConfig = {
+        name: "cheaperinference",
+        baseUrl: "https://api.cheaperinference.com/v1",
+        apiKey: "test-cheaperinference-key",
+        model: "gpt-5.4-mini",
+        maxTokens: 4096,
+      };
+      fetchSpy.mockResolvedValueOnce(
+        createJSONResponse({
+          choices: [{ message: { content: "hello from Cheaper Inference" } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+      );
+
+      const router = new LLMRouter(config);
+      await router.complete([{ role: "user", content: "test" }]);
+
+      const [url] = fetchSpy.mock.calls[0];
+      expect(url).toBe("https://api.cheaperinference.com/v1/chat/completions");
+    });
+
+    it("should use Bearer authorization header for cheaperinference", async () => {
+      const config: LLMProviderConfig = {
+        name: "cheaperinference",
+        baseUrl: "https://api.cheaperinference.com/v1",
+        apiKey: "test-cheaperinference-key",
+        model: "gpt-5.4-mini",
+        maxTokens: 4096,
+      };
+      fetchSpy.mockResolvedValueOnce(
+        createJSONResponse({
+          choices: [{ message: { content: "hello" } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+      );
+
+      const router = new LLMRouter(config);
+      await router.complete([{ role: "user", content: "test" }]);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options.headers.Authorization).toBe("Bearer test-cheaperinference-key");
+      expect(options.headers).not.toHaveProperty("x-api-key");
+    });
+
+    it("should parse Cheaper Inference response content and usage correctly", async () => {
+      const config: LLMProviderConfig = {
+        name: "cheaperinference",
+        baseUrl: "https://api.cheaperinference.com/v1",
+        apiKey: "test-cheaperinference-key",
+        model: "claude-sonnet-5",
+        maxTokens: 4096,
+      };
+      fetchSpy.mockResolvedValueOnce(
+        createJSONResponse({
+          choices: [{ message: { content: "Cheaper Inference response" } }],
+          usage: { prompt_tokens: 20, completion_tokens: 10 },
+        }),
+      );
+
+      const router = new LLMRouter(config);
+      const result = await router.complete([{ role: "user", content: "hello" }]);
+
+      expect(result.content).toBe("Cheaper Inference response");
+      expect(result.promptTokens).toBe(20);
+      expect(result.completionTokens).toBe(10);
+    });
+
     it("should include Anthropic cache tokens in prompt usage", async () => {
       const config: LLMProviderConfig = {
         name: "anthropic",

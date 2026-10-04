@@ -12,6 +12,7 @@ const defaultUrls: Record<LLMProviderType, string> = {
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com/v1',
   minimax: 'https://api.minimax.io/anthropic/v1',
+  cheaperinference: 'https://api.cheaperinference.com/v1',
   custom: '',
 }
 
@@ -159,6 +160,7 @@ export default function LLMSection() {
             { label: 'OpenAI', value: 'openai' },
             { label: 'Anthropic', value: 'anthropic' },
             { label: 'MiniMax', value: 'minimax' },
+            { label: 'Cheaper Inference', value: 'cheaperinference' },
             { label: 'Custom (OpenAI Compatible)', value: 'custom' },
           ]}
         />
