@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/mouseww-anything-analyzer-badge.png)](https://mseep.ai/app/mouseww-anything-analyzer)
+
 # Anything Analyzer
 
 [简体中文](README.md) | [English](README.en.md)
