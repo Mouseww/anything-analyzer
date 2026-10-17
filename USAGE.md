@@ -394,7 +394,7 @@ HTTP_PROXY=http://127.0.0.1:8888 HTTPS_PROXY=http://127.0.0.1:8888 node app.js
 
 这是单个服务器的配置，不需要外层 `mcpServers`。应用会在下一次开始分析时连接已启用的服务器，模型可根据分析要求选择调用工具；仍需先配置支持工具调用的 LLM。
 
-例如，在「管理提示词模板」中为自定义模板的分析要求加入以下内容，保存后在分析模式中选择该模板：
+例如，在「管理提示词模板」中为自定义模板的分析要求加入以下内容，保存后在分析模式中选择该模板。若新模板未显示，关闭设置，切换到浏览器视图，再返回检查器视图以刷新列表：
 
 > 使用 Parallel 的 web_search 查找 MDN 关于 HTTP 429 和 Retry-After 的公开文档，再用 web_fetch 读取相关页面。结合捕获到的状态码和响应头解释重试行为，并给出参考链接。搜索和抓取参数仅使用公开协议名称和公开文档 URL，不要发送捕获的 Cookie、Authorization、请求体或私有 URL。
 
@@ -529,7 +529,7 @@ The app has three main views:
 
 This is the configuration for one server; do not wrap it in `mcpServers`. Enabled servers connect when you next start an analysis. Your model can choose tools according to the analysis requirements, so configure a tool-capable LLM first.
 
-For example, add this analysis requirement to a custom template in Manage Prompt Templates (`管理提示词模板`), save it, and select that template as the analysis mode:
+For example, add this analysis requirement to a custom template in Manage Prompt Templates (`管理提示词模板`), save it, and select that template as the analysis mode. If the new template does not appear, close Settings, switch to Browser, and return to Inspector to refresh the list:
 
 > Use Parallel's web_search to find public MDN documentation for HTTP 429 and Retry-After, then read relevant pages with web_fetch. Explain retry behavior using the captured status codes and response headers, and cite the reference URLs. Use only public protocol names and public documentation URLs in search and fetch arguments. Do not send captured cookies, Authorization headers, request bodies, or private URLs.
 
