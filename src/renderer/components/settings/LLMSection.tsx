@@ -8,6 +8,14 @@ import type {
   OpenAIApiType,
 } from '@shared/types'
 
+/** 内置默认网关（无限星河AI，OpenAI 兼容）。保存时按 custom 类型存储，靠 Base URL 识别。 */
+const INFISTAR_URL = 'https://infistar.cc/v1'
+const INFISTAR_REGISTER_URL = 'https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link'
+const INFISTAR_DOC_URL = 'https://doc.infistar.cc/client-integrations/vs-code'
+type ProviderChoice = LLMProviderType | 'infistar'
+
+const isInfistarUrl = (url: string) => url.replace(/\/+$/, '') === INFISTAR_URL
+
 const defaultUrls: Record<LLMProviderType, string> = {
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com/v1',
@@ -41,9 +49,9 @@ const helpStyle: React.CSSProperties = {
 
 export default function LLMSection() {
   const toast = useToast()
-  const [name, setName] = useState<LLMProviderType>('openai')
+  const [choice, setChoice] = useState<ProviderChoice>('infistar')
   const [apiType, setApiType] = useState<OpenAIApiType | undefined>('completions')
-  const [baseUrl, setBaseUrl] = useState(defaultUrls.openai)
+  const [baseUrl, setBaseUrl] = useState(INFISTAR_URL)
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('')
   const [modelOptions, setModelOptions] = useState<string[]>([])
@@ -60,12 +68,14 @@ export default function LLMSection() {
   const [subagentChunkSize, setSubagentChunkSize] = useState(120)
   const [maxSubagents, setMaxSubagents] = useState(3)
 
+  // infistar 预设实际以 custom（OpenAI 兼容）存储
+  const name: LLMProviderType = choice === 'infistar' ? 'custom' : choice
   const showApiType = name === 'openai' || name === 'custom'
 
   useEffect(() => {
     window.electronAPI.getLLMConfig().then(config => {
       if (config) {
-        setName(config.name)
+        setChoice(config.name === 'custom' && isInfistarUrl(config.baseUrl) ? 'infistar' : config.name)
         setApiType(config.apiType ?? 'completions')
         setBaseUrl(config.baseUrl)
         setApiKey(config.apiKey)
@@ -88,10 +98,16 @@ export default function LLMSection() {
   }, [])
 
   const handleProviderChange = (value: string) => {
-    const provider = value as LLMProviderType
-    setName(provider)
-    setBaseUrl(defaultUrls[provider])
+    const next = value as ProviderChoice
+    setChoice(next)
     setModelOptions([])
+    if (next === 'infistar') {
+      setBaseUrl(INFISTAR_URL)
+      setApiType('completions')
+      return
+    }
+    const provider: LLMProviderType = next
+    setBaseUrl(defaultUrls[provider])
     if (provider === 'anthropic' || provider === 'minimax') {
       setApiType(undefined)
     } else if (!apiType) {
@@ -153,9 +169,10 @@ export default function LLMSection() {
       <div style={fieldStyle}>
         <label style={labelStyle}>Provider *</label>
         <Select
-          value={name}
+          value={choice}
           onChange={handleProviderChange}
           options={[
+            { label: '无限星河AI（内置默认网关）', value: 'infistar' },
             { label: 'OpenAI', value: 'openai' },
             { label: 'Anthropic', value: 'anthropic' },
             { label: 'MiniMax', value: 'minimax' },
@@ -163,6 +180,22 @@ export default function LLMSection() {
           ]}
         />
       </div>
+
+      {choice === 'infistar' && (
+        <div style={{ ...fieldStyle, padding: 12, borderRadius: 6, background: 'var(--bg-secondary, rgba(128,128,128,0.08))' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', marginBottom: 8 }}>
+            无限星河AI 为 OpenAI 兼容网关（Base URL：{INFISTAR_URL}）。还没有 API Key？注册后在控制台创建，模型 ID 取自模型广场。
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button size="sm" variant="primary" onClick={() => window.electronAPI.openExternal(INFISTAR_REGISTER_URL)}>
+              注册获取 API Key
+            </Button>
+            <Button size="sm" onClick={() => window.electronAPI.openExternal(INFISTAR_DOC_URL)}>
+              接入文档
+            </Button>
+          </div>
+        </div>
+      )}
 
       {showApiType && (
         <div style={fieldStyle}>
