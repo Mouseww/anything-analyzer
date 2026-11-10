@@ -254,12 +254,15 @@ src/
 Thanks to everyone on [LinuxDo](https://linux.do/) for their support!
 
 ---
+## 特约合作
+
+[<img width="1600" height="800" alt="Infistar 无限星河AI" src="https://github.com/user-attachments/assets/079e8c57-ab4e-461c-b9ed-f56c6bcace09" />](https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link)<br>
 
 ## 赞助鸣谢（下面的服务都是大家日常需要的哦！）
 
 | | |
 |:---:|---|
-| <a href="https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link"><img src="resources/infistar-logo.png" width="120" alt="Infistar 无限星河AI"></a> | **[Infistar 无限星河AI](https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link)** — Claude/GPT/Grok/DeepSeek 官方价的零头：低至 0.1 折，注册送人民币 5 元。一个 Key 调用 200+ 模型，OpenAI 兼容，软件内已内置为默认网关。<br>[<img src="resources/infistar-banner.png" alt="Infistar 无限星河AI" width="600">](https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link)<br>👉 [立即注册领取 ¥5](https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link) |
+| <a href="https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link"><img  alt="Infistar 无限星河AI" src="https://github.com/user-attachments/assets/56a60984-d219-462f-9b0e-f26a17dca8cc" width="600" /></a> | **[Infistar 无限星河AI](https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link)** — Claude/GPT/Grok/DeepSeek 官方价的零头：低至 0.1 折，注册送人民币 5 元。一个 Key 调用 200+ 模型，OpenAI 兼容，软件内已内置为默认网关。<br>👉 [立即注册领取 ¥5](https://www.infistar.cc/register?aff=5NAGNQX3&ref_source=link) |
 | <a href="https://www.rapidproxy.io/?ref=analyzer"><img width="800" height="400" alt="logo" src="https://github.com/user-attachments/assets/809d2d6a-eca6-47fb-ae5b-77bbbbf06884" /></a>|**RapidProxy** 是专为自动化任务和多账号业务打造的高性能代理服务商，提供纯净住宅代理和原生静态 ISP IP。支持 9000 万+ 全球住宅 IP、智能轮换、稳定 Session 和高并发请求，适用于网页数据采集、浏览器自动化、社媒账号运营、电商业务和批量注册等场景。住宅代理低至 $0.55/GB，流量长期有效不过期。使用优惠码 RAPID10 可享 9 折优惠，<a href="https://www.rapidproxy.io/?ref=analyzer">立即免费测试</a>。|
 | <a href="https://www.ipwo.net/?ref=githubMouseww"><img width="457"  alt="b19949dd9bd5760f8b90239ee644be10" src="https://github.com/user-attachments/assets/55f73666-4861-4726-8200-be6ad518c6ef" /></a>|AI 分析工具在处理全球化数据时，可能需要不同地区的访问环境。<br/>IPWO全球住宅代理，提供动静态IP资源，支持http/https/socks5多种协议，可以免费测试，帮助开发者探索更多数据获取与分析应用场景。<br/>优惠折扣码“0202”</br><a href="https://www.ipwo.net/?ref=githubMouseww">点击访问</a>|
 | <img width="457" height="365" alt="image" title="心里咨询服务" src="https://github.com/user-attachments/assets/d31260dc-232d-44b7-a814-29cb201068cf" />|**遇到难题，不必一个人扛** <br/>提供一对一心理支持与家庭关系咨询，擅长：<br/>• 情绪困扰与压力疏导<br/> • 家庭/亲密关系矛盾分析与调解<br/> • 生活重大决策的理性梳理与方案制定<br/> 倾听、梳理、出方案——陪你找到下一步的方向<br/> 电话/微信: 19117443889|
