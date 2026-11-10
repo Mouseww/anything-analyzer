@@ -184,7 +184,7 @@ export default function LLMSection() {
       {choice === 'infistar' && (
         <div style={{ ...fieldStyle, padding: 12, borderRadius: 6, background: 'var(--bg-secondary, rgba(128,128,128,0.08))' }}>
           <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', marginBottom: 8 }}>
-            无限星河AI 为 OpenAI 兼容网关（Base URL：{INFISTAR_URL}）。还没有 API Key？注册后在控制台创建，模型 ID 取自模型广场。
+            Claude/GPT/Grok/DeepSeek 官方价的零头：低至 0.1 折，注册送人民币 5 元。OpenAI 兼容网关（Base URL：{INFISTAR_URL}），注册后在控制台创建 API Key，模型 ID 取自模型广场。
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button size="sm" variant="primary" onClick={() => window.electronAPI.openExternal(INFISTAR_REGISTER_URL)}>
