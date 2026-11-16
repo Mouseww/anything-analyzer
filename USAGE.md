@@ -375,6 +375,31 @@ HTTP_PROXY=http://127.0.0.1:8888 HTTPS_PROXY=http://127.0.0.1:8888 node app.js
 - 支持 stdio 和 StreamableHTTP 两种传输方式
 - AI 分析时可自动调用 MCP 工具
 
+#### 示例：使用 Parallel 搜索公开协议文档
+
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) 提供网页搜索（`web_search`）和网页内容提取（`web_fetch`），可用于查找 HTTP 规范、公开 API 文档等参考资料。匿名搜索默认使用 Fast 模式，无需 Parallel 账号或 API Key；免费服务有使用限额。
+
+1. 打开「设置 → 通用 → 管理 MCP 服务器」，点击「添加服务器」。
+2. 名称填写 `Parallel Search`，保持「启用」开启，传输类型选择「远程服务 (HTTP)」。
+3. 在「配置 (JSON)」中粘贴以下内容，然后点击「保存」：
+
+   ```json
+   {
+     "url": "https://search.parallel.ai/mcp",
+     "headers": {
+       "User-Agent": "anything-analyzer"
+     }
+   }
+   ```
+
+这是单个服务器的配置，不需要外层 `mcpServers`。应用会在下一次开始分析时连接已启用的服务器，模型可根据分析要求选择调用工具；仍需先配置支持工具调用的 LLM。
+
+例如，在「管理提示词模板」中为自定义模板的分析要求加入以下内容，保存后在分析模式中选择该模板。若新模板未显示，关闭设置，切换到浏览器视图，再返回检查器视图以刷新列表：
+
+> 使用 Parallel 的 web_search 查找 MDN 关于 HTTP 429 和 Retry-After 的公开文档，再用 web_fetch 读取相关页面。结合捕获到的状态码和响应头解释重试行为，并给出参考链接。搜索和抓取参数仅使用公开协议名称和公开文档 URL，不要发送捕获的 Cookie、Authorization、请求体或私有 URL。
+
+外部工具的调用参数会发送给 Parallel。仅对允许分享的内容使用此功能；网页资料作为参考，实际抓包数据仍需单独核对。不再需要时，可在同一管理窗口删除该服务器以断开连接。
+
 ### MCP 服务端
 
 将 Anything Analyzer 的抓包和分析能力暴露为 MCP 工具：
@@ -484,6 +509,31 @@ The app has three main views:
 - **MCP Server**: Expose analyzer as MCP tools
 - **Proxy**: Configure outbound proxy
 - **MITM Proxy**: Enable HTTPS interception proxy with CA certificate management
+
+### Example: look up public protocol references with Parallel
+
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) provides web search (`web_search`) and page extraction (`web_fetch`) for references such as HTTP specifications and public API documentation. Anonymous search uses Fast mode by default, with no Parallel account or API key required. Free usage is subject to limits.
+
+1. Open Settings → General (`通用`) → Manage MCP Servers (`管理 MCP 服务器`), then click Add Server (`添加服务器`).
+2. Name it `Parallel Search`, leave Enabled (`启用`) on, and select Remote Service (`远程服务 (HTTP)`).
+3. Paste the following into Configuration (`配置 (JSON)`) and click Save (`保存`):
+
+   ```json
+   {
+     "url": "https://search.parallel.ai/mcp",
+     "headers": {
+       "User-Agent": "anything-analyzer"
+     }
+   }
+   ```
+
+This is the configuration for one server; do not wrap it in `mcpServers`. Enabled servers connect when you next start an analysis. Your model can choose tools according to the analysis requirements, so configure a tool-capable LLM first.
+
+For example, add this analysis requirement to a custom template in Manage Prompt Templates (`管理提示词模板`), save it, and select that template as the analysis mode. If the new template does not appear, close Settings, switch to Browser, and return to Inspector to refresh the list:
+
+> Use Parallel's web_search to find public MDN documentation for HTTP 429 and Retry-After, then read relevant pages with web_fetch. Explain retry behavior using the captured status codes and response headers, and cite the reference URLs. Use only public protocol names and public documentation URLs in search and fetch arguments. Do not send captured cookies, Authorization headers, request bodies, or private URLs.
+
+External tool arguments are sent to Parallel. Use this only with information you are allowed to share, and compare reference material against the actual capture. To disconnect the server when you no longer need it, delete its entry in the same management window.
 
 ---
 
